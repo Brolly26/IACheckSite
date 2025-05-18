@@ -1,0 +1,236 @@
+{
+  "seo": {
+    "score": 85,
+    "details": "Bom SEO. Título e meta description bem configurados.",
+    "items": [
+      {
+        "name": "Título da Página",
+        "passed": true,
+        "details": "Título presente: \"Exemplo de Site - Página Inicial\" (32 caracteres)"
+      },
+      {
+        "name": "Meta Description",
+        "passed": true,
+        "details": "Meta description presente (120 caracteres)"
+      },
+      {
+        "name": "Estrutura de Headings",
+        "passed": true,
+        "details": "Estrutura de headings adequada com uma tag H1."
+      },
+      {
+        "name": "HTTPS",
+        "passed": true,
+        "details": "O site utiliza HTTPS, o que é bom para SEO e segurança."
+      },
+      {
+        "name": "Robots.txt",
+        "passed": true,
+        "details": "Arquivo robots.txt encontrado."
+      },
+      {
+        "name": "Sitemap.xml",
+        "passed": false,
+        "details": "Arquivo sitemap.xml não encontrado."
+      }
+    ]
+  },
+  "accessibility": {
+    "score": 70,
+    "details": "Acessibilidade média. Algumas imagens sem texto alternativo.",
+    "items": [
+      {
+        "name": "Imagens com Alt Text",
+        "passed": false,
+        "details": "3 imagens sem texto alternativo."
+      },
+      {
+        "name": "Estrutura de Headings",
+        "passed": true,
+        "details": "Estrutura de headings adequada com uma tag H1."
+      }
+    ]
+  },
+  "performance": {
+    "score": 92,
+    "details": "Boa performance. Tempo de carregamento rápido e tamanho total adequado.",
+    "items": [
+      {
+        "name": "Tempo de Carregamento",
+        "passed": true,
+        "details": "Tempo de carregamento excelente: 0.85 segundos."
+      },
+      {
+        "name": "Tamanho Total",
+        "passed": true,
+        "details": "Tamanho total excelente: 450 KB."
+      }
+    ]
+  },
+  "security": {
+    "score": 65,
+    "details": "Segurança média. Algumas medidas importantes estão ausentes, como headers de segurança específicos.",
+    "status": "Atenção",
+    "items": [
+      {
+        "name": "HTTPS",
+        "passed": true,
+        "details": "O site utiliza HTTPS, garantindo conexão segura."
+      },
+      {
+        "name": "X-Content-Type-Options",
+        "passed": true,
+        "details": "Header X-Content-Type-Options configurado corretamente."
+      },
+      {
+        "name": "X-Frame-Options",
+        "passed": false,
+        "details": "Header X-Frame-Options ausente, tornando o site vulnerável a clickjacking."
+      },
+      {
+        "name": "Strict-Transport-Security",
+        "passed": false,
+        "details": "Header HSTS ausente, permitindo possíveis downgrade attacks."
+      },
+      {
+        "name": "Content-Security-Policy",
+        "passed": false,
+        "details": "Content Security Policy ausente, aumentando vulnerabilidade a XSS."
+      },
+      {
+        "name": "Bibliotecas Vulneráveis",
+        "passed": true,
+        "details": "Nenhuma biblioteca JavaScript vulnerável detectada."
+      }
+    ]
+  },
+  "mobile": {
+    "score": 88,
+    "details": "Boa experiência mobile. O site é responsivo, mas tem pequenas melhorias a serem feitas.",
+    "status": "Bom",
+    "items": [
+      {
+        "name": "Viewport Meta Tag",
+        "passed": true,
+        "details": "O site utiliza a meta tag viewport corretamente."
+      },
+      {
+        "name": "Tamanho de Fonte em Mobile",
+        "passed": true,
+        "details": "As fontes têm tamanho adequado para leitura em dispositivos móveis."
+      },
+      {
+        "name": "Áreas Clicáveis",
+        "passed": false,
+        "details": "Muitos botões e links têm áreas clicáveis pequenas demais para uso confortável em dispositivos móveis."
+      }
+    ]
+  },
+  "analytics": {
+    "score": 75,
+    "details": "Implementação parcial de analytics. O site utiliza algumas ferramentas de rastreamento, mas pode melhorar a implementação.",
+    "status": "Parcial",
+    "items": [
+      {
+        "name": "Google Analytics",
+        "passed": true,
+        "details": "Google Analytics detectado no site."
+      },
+      {
+        "name": "Meta Pixel",
+        "passed": false,
+        "details": "Meta Pixel (Facebook) não detectado."
+      },
+      {
+        "name": "LinkedIn Insight Tag",
+        "passed": false,
+        "details": "LinkedIn Insight Tag não detectado."
+      },
+      {
+        "name": "Outras ferramentas de analytics",
+        "passed": true,
+        "details": "Outras ferramentas detectadas: Hotjar"
+      },
+      {
+        "name": "Posicionamento dos scripts",
+        "passed": false,
+        "details": "Apenas 50% dos scripts de analytics estão no <head>, a maioria está no <body>."
+      }
+    ]
+  },
+  "technicalSeo": {
+    "score": 80,
+    "details": "Boa implementação técnica de SEO. O site possui a maioria das meta tags e elementos técnicos importantes.",
+    "status": "Bom",
+    "items": [
+      {
+        "name": "Meta Title",
+        "passed": true,
+        "details": "Meta title presente e configurado."
+      },
+      {
+        "name": "Meta Description",
+        "passed": true,
+        "details": "Meta description presente."
+      },
+      {
+        "name": "Canonical URL",
+        "passed": true,
+        "details": "Tag canonical presente, evitando conteúdo duplicado."
+      },
+      {
+        "name": "Open Graph Image",
+        "passed": false,
+        "details": "Open Graph Image ausente, prejudicando o compartilhamento em redes sociais."
+      },
+      {
+        "name": "Dados Estruturados",
+        "passed": true,
+        "details": "Dados estruturados (Schema.org) detectados, melhorando a visibilidade nos resultados de busca."
+      },
+      {
+        "name": "Robots.txt",
+        "passed": true,
+        "details": "Arquivo robots.txt encontrado."
+      },
+      {
+        "name": "Sitemap.xml",
+        "passed": false,
+        "details": "Arquivo sitemap.xml não encontrado."
+      }
+    ]
+  },
+  "httpHeaders": {
+    "score": 60,
+    "details": "Headers HTTP e cache adequados. Algumas configurações de cache estão presentes, mas há espaço para otimização.",
+    "status": "Adequado",
+    "items": [
+      {
+        "name": "Cache-Control",
+        "passed": true,
+        "details": "Cache-Control configurado: max-age=3600, public"
+      },
+      {
+        "name": "Max-Age",
+        "passed": true,
+        "details": "Max-Age configurado para 3600 segundos (1 horas)."
+      },
+      {
+        "name": "Public/Private",
+        "passed": true,
+        "details": "Cache configurado como público."
+      },
+      {
+        "name": "ETag",
+        "passed": false,
+        "details": "ETag não configurado, o que pode aumentar o tráfego desnecessário."
+      },
+      {
+        "name": "Expires",
+        "passed": false,
+        "details": "Header Expires não configurado."
+      }
+    ]
+  },
+  "aiAnalysis": "# Diagnóstico Técnico do Site\n\n## Diagnóstico Geral\n\nO site apresenta uma implementação técnica de qualidade média-alta, com pontos fortes em SEO básico, performance e experiência mobile. No entanto, existem oportunidades significativas de melhoria em segurança web, implementação completa de analytics e otimização de cache. A presença de HTTPS é um ponto positivo fundamental, mas a ausência de headers de segurança importantes expõe o site a vulnerabilidades evitáveis.\n\n## Pontos Positivos\n\n- **Boa Performance**: O tempo de carregamento de 0.85 segundos é excelente, proporcionando uma experiência ágil para os usuários.\n- **SEO Básico Bem Implementado**: Título e meta description adequados, estrutura de headings correta e presença de robots.txt.\n- **Experiência Mobile Adequada**: A implementação da meta tag viewport e fontes de tamanho adequado garantem boa legibilidade em dispositivos móveis.\n- **Uso de HTTPS**: A conexão segura protege os dados dos usuários e favorece o posicionamento nos buscadores.\n- **Implementação Parcial de Analytics**: A presença do Google Analytics e Hotjar permite o acompanhamento básico do comportamento dos usuários.\n- **Dados Estruturados Presentes**: A implementação de schema.org melhora a visibilidade nos resultados de busca.\n\n## O Que Precisa Melhorar\n\n- **Headers de Segurança Ausentes**: A falta de X-Frame-Options, HSTS e Content-Security-Policy expõe o site a riscos de segurança como clickjacking e ataques XSS.\n- **Áreas Clicáveis Inadequadas em Mobile**: Botões e links pequenos prejudicam a experiência em dispositivos touchscreen.\n- **Implementação Incompleta de Analytics**: A ausência de Meta Pixel e LinkedIn Insight Tag limita o rastreamento de conversões e a eficácia de campanhas em plataformas sociais.\n- **Posicionamento Inadequado de Scripts**: Apenas 50% dos scripts de analytics estão no <head>, o que pode afetar a precisão dos dados coletados.\n- **Ausência de Sitemap.xml**: Dificulta a indexação completa do site pelos motores de busca.\n- **Configuração de Cache Incompleta**: A ausência de ETag e header Expires limita a eficiência do cache.\n- **Ausência de Open Graph Image**: Prejudica a apresentação do site quando compartilhado em redes sociais.\n\n## Recomendações Simples\n\n1. **Implementar Headers de Segurança**: Adicionar X-Frame-Options, Strict-Transport-Security e Content-Security-Policy ao servidor web.\n2. **Aumentar Áreas Clicáveis**: Garantir que todos os elementos interativos tenham pelo menos 44x44 pixels em dispositivos móveis.\n3. **Criar e Submeter Sitemap.xml**: Gerar um sitemap.xml completo e submetê-lo ao Google Search Console.\n4. **Otimizar Configuração de Cache**: Implementar ETag e definir headers Expires apropriados para recursos estáticos.\n5. **Adicionar Meta Tags para Redes Sociais**: Implementar Open Graph e Twitter Cards para melhorar o compartilhamento em redes sociais.\n6. **Complementar Stack de Analytics**: Adicionar Meta Pixel para rastreamento de conversões do Facebook e LinkedIn Insight Tag para campanhas B2B.\n7. **Mover Scripts de Analytics para o <head>**: Garantir que todos os scripts de rastreamento estejam posicionados corretamente para coleta precisa de dados.\n8. **Adicionar Alt Text às Imagens**: Garantir que todas as imagens tenham textos alternativos descritivos para melhorar a acessibilidade."
+}
