@@ -19,18 +19,7 @@ const PORT = process.env.PORT || 3001;
 const allowedOrigins = ['https://ia-check-site-rvrt.vercel.app', 'https://ia-check-site-rvrt-1xbv5bzhk-brolly26s-projects.vercel.app']; // Liste os domínios que podem acessar
 
 app.use(cors({
-  origin: function(origin, callback){
-    if(!origin) return callback(null, true); // permitir requests sem origin (ex: postman)
-    if(allowedOrigins.indexOf(origin) === -1){
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
-    }
-    return callback(null, true);
-  },
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  preflightContinue: false,
-  optionsSuccessStatus: 204
+  origin: '*'
 }));
 
 app.options('*', cors());
