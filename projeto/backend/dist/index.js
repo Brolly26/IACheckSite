@@ -16,12 +16,24 @@ if (!process.env.OPENAI_API_KEY) {
 }
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 3001;
-// Middleware
+// CORS configuration
+const allowedOrigins = [
+    'https://ia-check-site-rvrt.vercel.app',
+    'https://ia-check-site-rvrt-1xbv5bzhk-brolly26s-projects.vercel.app' // domínio temporário do Vercel
+];
 app.use((0, cors_1.default)({
-    origin: 'https://ia-check-site-rvrt.vercel.app',
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        }
+        else {
+            callback(new Error(`Not allowed by CORS: ${origin}`));
+        }
+    },
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type']
 }));
+// Middlewares
 app.use(express_1.default.json());
 // Routes
 app.use('/api', analyze_1.analyzeRoutes);

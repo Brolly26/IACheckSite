@@ -15,7 +15,7 @@
     "node-fetch": "^3.3.2",
     "openai": "^5.1.1",
     "pdfkit": "^0.17.0",
-    "puppeteer": "^24.8.0"
+    "puppeteer": "^24.10.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.13",
