@@ -30,8 +30,8 @@ app.get('/health', (req, res) => {
 // Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(`Health check: http://localhost:${PORT}/health`);
-  console.log(`API endpoint: http://localhost:${PORT}/api/analyze`);
+  console.log(`Health check: https://iachecksite.onrender.com/health`);
+  console.log(`API endpoint: https://iachecksite.onrender.com/api/analyze`);
 });
 
 export default app;

@@ -78,7 +78,7 @@ export default function Home() {
       setPdfError('');
       
       // Make a POST request to the backend to generate the PDF
-      const response = await axios.post('http://localhost:3001/api/generate-pdf', reportData, {
+      const response = await axios.post('https://iachecksite.onrender.com/api/generate-pdf', reportData, {
         responseType: 'blob' // Important for handling binary data
       });
       
@@ -117,7 +117,7 @@ export default function Home() {
       setError('')
       setReportData(null)
       
-      const response = await axios.post('http://localhost:3001/api/analyze', { url })
+      const response = await axios.post('https://iachecksite.onrender.com/api/analyze', { url })
       setReportData(response.data)
     } catch (err) {
       setError('Ocorreu um erro ao analisar o site. Por favor, tente novamente.')
