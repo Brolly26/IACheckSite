@@ -1,14 +1,12 @@
-import { Configuration, OpenAIApi } from 'openai';
 import { SiteData } from '../utils/types';
+import OpenAI from "openai";
 
-// Initialize OpenAI API
-const configuration = new Configuration({
+// Inicializa a API do OpenAI
+const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-const openai = new OpenAIApi(configuration);
 
 export async function generateAIAnalysis(siteData: SiteData): Promise<string> {
-  // Default analysis in case of error
   const defaultAnalysis = `
 # Diagnóstico Técnico do Site
 
@@ -38,8 +36,7 @@ O site apresenta uma implementação técnica de qualidade média, com pontos fo
 
   try {
     console.log('Generating AI analysis...');
-    
-    // Create the prompt for OpenAI
+
     const prompt = `
 Você é um especialista técnico em SEO, acessibilidade, performance web, segurança e análise técnica de sites. Receberá dados técnicos de um site e deve gerar um relatório em português claro, com explicações acessíveis para leigos e sugestões práticas de melhoria. Destaque os principais erros e boas práticas.
 
@@ -92,26 +89,23 @@ Gere um relatório organizado com seções:
 4. Recomendações simples
 `;
 
-    // Call OpenAI API with timeout
+    // Timeout para requisição de 15 segundos
     const timeoutPromise = new Promise<string>((_, reject) => {
       setTimeout(() => reject(new Error('OpenAI API request timed out')), 15000);
     });
-    
-    const apiPromise = openai.createCompletion({
+
+    const apiPromise = openai.completions.create({
       model: "text-davinci-003",
       prompt: prompt,
       max_tokens: 1000,
       temperature: 0.7,
     }).then(response => {
-      // Extract and return the generated text
-      return response.data.choices[0]?.text?.trim() || defaultAnalysis;
+      return response.choices[0]?.text?.trim() || defaultAnalysis;
     });
-    
-    // Race between the API call and the timeout
-    return await Promise.race([apiPromise, timeoutPromise]) as string;
+
+    return await Promise.race([apiPromise, timeoutPromise]);
   } catch (error) {
     console.error('Error generating AI analysis:', error);
-    // Return default analysis instead of error message
     return defaultAnalysis;
   }
 }
