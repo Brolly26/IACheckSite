@@ -20,54 +20,79 @@ const node_fetch_1 = __importDefault(require("node-fetch"));
 const reports_1 = require("./reports");
 function analyzeSite(url) {
     return __awaiter(this, void 0, void 0, function* () {
-        // Configure browser launch options
+        const startTime = Date.now();
+        console.log(`[${new Date().toISOString()}] Starting analysis for: ${url}`);
+        // Configure browser launch options - optimized for speed
         const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER;
+        // Aggressive optimization flags for Chromium
+        const minimalArgs = [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--disable-software-rasterizer',
+            '--disable-extensions',
+            '--disable-background-networking',
+            '--disable-default-apps',
+            '--disable-sync',
+            '--disable-translate',
+            '--hide-scrollbars',
+            '--mute-audio',
+            '--no-first-run',
+            '--safebrowsing-disable-auto-update',
+            '--single-process', // Important for low-memory environments
+            '--no-zygote', // Important for containerized environments
+        ];
         let launchOptions;
         if (isProduction) {
-            // Production: Use @sparticuz/chromium (for Render, Vercel, AWS Lambda, etc)
             console.log('🚀 Using @sparticuz/chromium for production...');
             launchOptions = {
-                args: chromium_1.default.args,
-                defaultViewport: chromium_1.default.defaultViewport,
+                args: [...chromium_1.default.args, ...minimalArgs],
+                defaultViewport: { width: 1280, height: 720 }, // Smaller viewport
                 executablePath: yield chromium_1.default.executablePath(),
                 headless: chromium_1.default.headless,
             };
         }
         else if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-            // Development with custom Chrome path
             console.log('💻 Using custom Chrome path for development...');
             launchOptions = {
                 headless: true,
                 executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
-                args: [
-                    '--no-sandbox',
-                    '--disable-setuid-sandbox',
-                    '--disable-dev-shm-usage',
-                    '--disable-gpu',
-                    '--window-size=1920x1080'
-                ]
+                args: minimalArgs,
+                defaultViewport: { width: 1280, height: 720 },
             };
         }
         else {
-            // Fallback: Try @sparticuz/chromium
             console.log('🔄 Fallback to @sparticuz/chromium...');
             launchOptions = {
-                args: chromium_1.default.args,
-                defaultViewport: chromium_1.default.defaultViewport,
+                args: [...chromium_1.default.args, ...minimalArgs],
+                defaultViewport: { width: 1280, height: 720 },
                 executablePath: yield chromium_1.default.executablePath(),
                 headless: chromium_1.default.headless,
             };
         }
+        console.log(`[${Date.now() - startTime}ms] Launching browser...`);
         const browser = yield puppeteer_core_1.default.launch(launchOptions);
         try {
             const page = yield browser.newPage();
-            // Set timeout to 45 seconds
-            yield page.setDefaultNavigationTimeout(45000);
-            // Navigate to the URL - use 'load' event (standard, reliable)
-            console.log(`Navigating to ${url}...`);
-            const response = yield page.goto(url, { waitUntil: 'load', timeout: 45000 });
-            // Small delay for JS to execute (2 seconds max)
-            yield new Promise(resolve => setTimeout(resolve, 2000));
+            // Block heavy resources to speed up loading
+            yield page.setRequestInterception(true);
+            page.on('request', (req) => {
+                const resourceType = req.resourceType();
+                // Block images, fonts, media to speed up analysis
+                if (['image', 'font', 'media'].includes(resourceType)) {
+                    req.abort();
+                }
+                else {
+                    req.continue();
+                }
+            });
+            // Set timeout to 30 seconds
+            yield page.setDefaultNavigationTimeout(30000);
+            // Navigate to the URL
+            console.log(`[${Date.now() - startTime}ms] Navigating to ${url}...`);
+            const response = yield page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+            console.log(`[${Date.now() - startTime}ms] Page loaded, collecting data...`);
             // Capture headers from initial response (reused by reports)
             const responseHeaders = (response === null || response === void 0 ? void 0 : response.headers()) || {};
             // Get REAL load time from browser's Performance API (not server time)
@@ -128,8 +153,9 @@ function analyzeSite(url) {
             const technicalSeoScore = (0, reports_1.calculateTechnicalSeoScore)(siteData);
             const httpHeadersScore = (0, reports_1.calculateHttpHeadersScore)(siteData);
             // Generate AI analysis
-            console.log('Generating AI analysis...');
+            console.log(`[${Date.now() - startTime}ms] Generating AI analysis...`);
             const aiAnalysis = yield (0, openai_1.generateAIAnalysis)(siteData);
+            console.log(`[${Date.now() - startTime}ms] ✅ Analysis complete!`);
             return {
                 seo: {
                     score: seoScore,
