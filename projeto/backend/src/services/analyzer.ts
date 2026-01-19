@@ -13,7 +13,99 @@ import {
   runHttpHeadersCheck, calculateHttpHeadersScore, getHttpHeadersCheckItems, getHttpHeadersStatus, getHttpHeadersDetails
 } from './reports';
 
+// ===== CACHE SYSTEM =====
+interface CacheEntry {
+  result: AnalysisResult;
+  timestamp: number;
+}
+
+// In-memory cache for analysis results
+const analysisCache = new Map<string, CacheEntry>();
+
+// Cache TTL: 30 minutes (in milliseconds)
+const CACHE_TTL = 30 * 60 * 1000;
+
+/**
+ * Normalizes URL for cache key (removes trailing slash, www, etc.)
+ */
+function normalizeUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    // Remove www. prefix if present
+    let hostname = parsed.hostname.replace(/^www\./, '');
+    // Create normalized key: protocol + hostname + pathname (no trailing slash)
+    let pathname = parsed.pathname.replace(/\/$/, '') || '/';
+    return `${parsed.protocol}//${hostname}${pathname}`;
+  } catch {
+    return url.toLowerCase().trim();
+  }
+}
+
+/**
+ * Gets cached result if valid
+ */
+function getCachedResult(url: string): AnalysisResult | null {
+  const cacheKey = normalizeUrl(url);
+  const cached = analysisCache.get(cacheKey);
+
+  if (cached) {
+    const age = Date.now() - cached.timestamp;
+    if (age < CACHE_TTL) {
+      const ageMinutes = Math.round(age / 60000);
+      console.log(`📦 Cache hit for ${url} (cached ${ageMinutes} min ago)`);
+      return cached.result;
+    } else {
+      // Expired, remove from cache
+      console.log(`🗑️ Cache expired for ${url}`);
+      analysisCache.delete(cacheKey);
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Stores result in cache
+ */
+function cacheResult(url: string, result: AnalysisResult): void {
+  const cacheKey = normalizeUrl(url);
+  analysisCache.set(cacheKey, {
+    result,
+    timestamp: Date.now()
+  });
+  console.log(`💾 Cached result for ${url} (cache size: ${analysisCache.size})`);
+}
+
+/**
+ * Clears expired entries from cache (runs periodically)
+ */
+function cleanExpiredCache(): void {
+  const now = Date.now();
+  let removed = 0;
+
+  for (const [key, entry] of analysisCache.entries()) {
+    if (now - entry.timestamp >= CACHE_TTL) {
+      analysisCache.delete(key);
+      removed++;
+    }
+  }
+
+  if (removed > 0) {
+    console.log(`🧹 Cleaned ${removed} expired cache entries`);
+  }
+}
+
+// Clean cache every 10 minutes
+setInterval(cleanExpiredCache, 10 * 60 * 1000);
+
+// ===== END CACHE SYSTEM =====
+
 export async function analyzeSite(url: string): Promise<AnalysisResult> {
+  // Check cache first
+  const cachedResult = getCachedResult(url);
+  if (cachedResult) {
+    return cachedResult;
+  }
   const startTime = Date.now();
   console.log(`[${new Date().toISOString()}] Starting analysis for: ${url}`);
 
@@ -165,7 +257,7 @@ export async function analyzeSite(url: string): Promise<AnalysisResult> {
 
     console.log(`[${Date.now() - startTime}ms] ✅ Analysis complete!`);
 
-    return {
+    const result: AnalysisResult = {
       seo: {
         score: seoScore,
         details: getSEODetails(siteData, seoScore),
@@ -213,6 +305,11 @@ export async function analyzeSite(url: string): Promise<AnalysisResult> {
       },
       aiAnalysis
     };
+
+    // Cache the result before returning
+    cacheResult(url, result);
+
+    return result;
   } catch (error) {
     console.error('Error during site analysis:', error);
     throw error;

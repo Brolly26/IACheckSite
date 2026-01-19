@@ -18,8 +18,84 @@ const chromium_1 = __importDefault(require("@sparticuz/chromium"));
 const openai_1 = require("./openai");
 const node_fetch_1 = __importDefault(require("node-fetch"));
 const reports_1 = require("./reports");
+// In-memory cache for analysis results
+const analysisCache = new Map();
+// Cache TTL: 30 minutes (in milliseconds)
+const CACHE_TTL = 30 * 60 * 1000;
+/**
+ * Normalizes URL for cache key (removes trailing slash, www, etc.)
+ */
+function normalizeUrl(url) {
+    try {
+        const parsed = new URL(url);
+        // Remove www. prefix if present
+        let hostname = parsed.hostname.replace(/^www\./, '');
+        // Create normalized key: protocol + hostname + pathname (no trailing slash)
+        let pathname = parsed.pathname.replace(/\/$/, '') || '/';
+        return `${parsed.protocol}//${hostname}${pathname}`;
+    }
+    catch (_a) {
+        return url.toLowerCase().trim();
+    }
+}
+/**
+ * Gets cached result if valid
+ */
+function getCachedResult(url) {
+    const cacheKey = normalizeUrl(url);
+    const cached = analysisCache.get(cacheKey);
+    if (cached) {
+        const age = Date.now() - cached.timestamp;
+        if (age < CACHE_TTL) {
+            const ageMinutes = Math.round(age / 60000);
+            console.log(`📦 Cache hit for ${url} (cached ${ageMinutes} min ago)`);
+            return cached.result;
+        }
+        else {
+            // Expired, remove from cache
+            console.log(`🗑️ Cache expired for ${url}`);
+            analysisCache.delete(cacheKey);
+        }
+    }
+    return null;
+}
+/**
+ * Stores result in cache
+ */
+function cacheResult(url, result) {
+    const cacheKey = normalizeUrl(url);
+    analysisCache.set(cacheKey, {
+        result,
+        timestamp: Date.now()
+    });
+    console.log(`💾 Cached result for ${url} (cache size: ${analysisCache.size})`);
+}
+/**
+ * Clears expired entries from cache (runs periodically)
+ */
+function cleanExpiredCache() {
+    const now = Date.now();
+    let removed = 0;
+    for (const [key, entry] of analysisCache.entries()) {
+        if (now - entry.timestamp >= CACHE_TTL) {
+            analysisCache.delete(key);
+            removed++;
+        }
+    }
+    if (removed > 0) {
+        console.log(`🧹 Cleaned ${removed} expired cache entries`);
+    }
+}
+// Clean cache every 10 minutes
+setInterval(cleanExpiredCache, 10 * 60 * 1000);
+// ===== END CACHE SYSTEM =====
 function analyzeSite(url) {
     return __awaiter(this, void 0, void 0, function* () {
+        // Check cache first
+        const cachedResult = getCachedResult(url);
+        if (cachedResult) {
+            return cachedResult;
+        }
         const startTime = Date.now();
         console.log(`[${new Date().toISOString()}] Starting analysis for: ${url}`);
         // Configure browser launch options - optimized for speed
@@ -151,7 +227,7 @@ function analyzeSite(url) {
             console.log(`[${Date.now() - startTime}ms] Generating AI analysis...`);
             const aiAnalysis = yield (0, openai_1.generateAIAnalysis)(siteData);
             console.log(`[${Date.now() - startTime}ms] ✅ Analysis complete!`);
-            return {
+            const result = {
                 seo: {
                     score: seoScore,
                     details: getSEODetails(siteData, seoScore),
@@ -199,6 +275,9 @@ function analyzeSite(url) {
                 },
                 aiAnalysis
             };
+            // Cache the result before returning
+            cacheResult(url, result);
+            return result;
         }
         catch (error) {
             console.error('Error during site analysis:', error);

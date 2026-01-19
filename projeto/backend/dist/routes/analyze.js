@@ -17,7 +17,81 @@ const express_1 = __importDefault(require("express"));
 const analyzer_1 = require("../services/analyzer");
 const pdfGenerator_1 = require("../services/pdfGenerator");
 const router = express_1.default.Router();
-router.post('/analyze', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+// In-memory rate limit store
+const rateLimitStore = new Map();
+// Rate limit configuration
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
+const MAX_REQUESTS_PER_WINDOW = 10; // 10 requests per minute per IP
+/**
+ * Gets client IP address from request
+ */
+function getClientIp(req) {
+    // Check for proxy headers (Render, Vercel, etc.)
+    const forwarded = req.headers['x-forwarded-for'];
+    if (forwarded) {
+        const ips = Array.isArray(forwarded) ? forwarded[0] : forwarded.split(',')[0];
+        return ips.trim();
+    }
+    return req.ip || req.socket.remoteAddress || 'unknown';
+}
+/**
+ * Rate limiter middleware
+ */
+function rateLimiter(req, res, next) {
+    const clientIp = getClientIp(req);
+    const now = Date.now();
+    // Get or create rate limit entry
+    let entry = rateLimitStore.get(clientIp);
+    if (!entry || now >= entry.resetTime) {
+        // New window
+        entry = {
+            count: 1,
+            resetTime: now + RATE_LIMIT_WINDOW
+        };
+        rateLimitStore.set(clientIp, entry);
+        next();
+        return;
+    }
+    // Check if limit exceeded
+    if (entry.count >= MAX_REQUESTS_PER_WINDOW) {
+        const retryAfter = Math.ceil((entry.resetTime - now) / 1000);
+        res.setHeader('Retry-After', retryAfter.toString());
+        res.setHeader('X-RateLimit-Limit', MAX_REQUESTS_PER_WINDOW.toString());
+        res.setHeader('X-RateLimit-Remaining', '0');
+        res.setHeader('X-RateLimit-Reset', entry.resetTime.toString());
+        console.warn(`⚠️ Rate limit exceeded for IP: ${clientIp}`);
+        res.status(429).json({
+            error: 'Too Many Requests',
+            message: `Limite de requisições excedido. Tente novamente em ${retryAfter} segundos.`,
+            retryAfter
+        });
+        return;
+    }
+    // Increment counter
+    entry.count++;
+    // Add rate limit headers
+    res.setHeader('X-RateLimit-Limit', MAX_REQUESTS_PER_WINDOW.toString());
+    res.setHeader('X-RateLimit-Remaining', (MAX_REQUESTS_PER_WINDOW - entry.count).toString());
+    res.setHeader('X-RateLimit-Reset', entry.resetTime.toString());
+    next();
+}
+// Clean expired rate limit entries every 5 minutes
+setInterval(() => {
+    const now = Date.now();
+    let removed = 0;
+    for (const [ip, entry] of rateLimitStore.entries()) {
+        if (now >= entry.resetTime) {
+            rateLimitStore.delete(ip);
+            removed++;
+        }
+    }
+    if (removed > 0) {
+        console.log(`🧹 Cleaned ${removed} expired rate limit entries`);
+    }
+}, 5 * 60 * 1000);
+// ===== END RATE LIMITING =====
+// Apply rate limiter to analyze endpoint
+router.post('/analyze', rateLimiter, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { url } = req.body;
         if (!url) {
