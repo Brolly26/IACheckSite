@@ -1,4 +1,5 @@
-import * as puppeteer from 'puppeteer';
+import puppeteer, { Page } from 'puppeteer-core';
+import chromium from 'chrome-aws-lambda';
 import { generateAIAnalysis } from './openai';
 import { SiteData, AnalysisResult, CheckItem } from '../utils/types';
 import fetch from 'node-fetch';
@@ -13,10 +14,41 @@ import {
 } from './reports';
 
 export async function analyzeSite(url: string): Promise<AnalysisResult> {
-  const browser = await puppeteer.launch({
+  // Configure browser launch options
+  // In production (Render.com), use chrome-aws-lambda
+  // In development, try to use system Chrome or fallback to chrome-aws-lambda
+  const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER;
+  
+  let launchOptions: any = {
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
-  });
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-accelerated-2d-canvas',
+      '--disable-gpu',
+      '--window-size=1920x1080'
+    ]
+  };
+
+  // Use chrome-aws-lambda in production or if PUPPETEER_EXECUTABLE_PATH is not set
+  if (isProduction || !process.env.PUPPETEER_EXECUTABLE_PATH) {
+    try {
+      launchOptions = {
+        args: chromium.args,
+        defaultViewport: chromium.defaultViewport,
+        executablePath: await chromium.executablePath,
+        headless: chromium.headless,
+      };
+    } catch (error) {
+      console.warn('Failed to use chrome-aws-lambda, falling back to default options:', error);
+    }
+  } else {
+    // Use system Chrome in development if path is provided
+    launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+  }
+
+  const browser = await puppeteer.launch(launchOptions);
   
   try {
     const page = await browser.newPage();
@@ -24,42 +56,48 @@ export async function analyzeSite(url: string): Promise<AnalysisResult> {
     // Set timeout to 30 seconds
     await page.setDefaultNavigationTimeout(30000);
     
-    // Navigate to the URL
+    // Navigate to the URL and capture response with headers
     console.log(`Navigating to ${url}...`);
     const startTime = Date.now();
-    await page.goto(url, { waitUntil: 'networkidle2' });
+    const response = await page.goto(url, { waitUntil: 'networkidle2' });
     const loadTime = (Date.now() - startTime) / 1000;
-    
+
+    // Capture headers from initial response (reused by reports)
+    const responseHeaders = response?.headers() || {};
+
     // Collect site data
     console.log('Collecting site data...');
     const siteData = await collectSiteData(page, url, loadTime);
-    
-    // Run additional checks
+
+    // Run additional checks (reusing page and headers - NO extra navigation)
     console.log('Running additional checks...');
-    
-    // Security check
-    const securityData = await runSecurityCheck(page, url);
+
+    // Security check - pass headers from initial response
+    const securityData = await runSecurityCheck(page, url, responseHeaders);
     siteData.securityHeaders = securityData.securityHeaders;
     siteData.vulnerableLibraries = securityData.vulnerableLibraries;
-    
-    // Mobile check
+
+    // Mobile check - needs viewport change but uses reload instead of full navigation
     const mobileData = await runMobileCheck(page, url);
     siteData.hasViewportMeta = mobileData.hasViewportMeta;
     siteData.fontSizeOnMobile = mobileData.fontSizeOnMobile;
     siteData.clickableAreasSufficient = mobileData.clickableAreasSufficient;
-    
-    // Analytics check
-    const analyticsData = await runAnalyticsCheck(page, url);
+
+    // Restore desktop viewport after mobile check
+    await page.setViewport({ width: 1920, height: 1080 });
+
+    // Analytics check - page already loaded, no navigation needed
+    const analyticsData = await runAnalyticsCheck(page);
     siteData.analyticsTools = analyticsData.analyticsTools;
     siteData.trackingScriptPlacement = analyticsData.trackingScriptPlacement;
-    
-    // Technical SEO check
-    const technicalSeoData = await runTechnicalSeoCheck(page, url);
+
+    // Technical SEO check - page already loaded, no navigation needed
+    const technicalSeoData = await runTechnicalSeoCheck(page);
     siteData.metaTags = technicalSeoData.metaTags;
     siteData.hasStructuredData = technicalSeoData.hasStructuredData;
-    
-    // HTTP headers check
-    const httpHeadersData = await runHttpHeadersCheck(page, url);
+
+    // HTTP headers check - use headers from initial response
+    const httpHeadersData = await runHttpHeadersCheck(responseHeaders);
     siteData.headers = httpHeadersData.headers;
     
     // Generate scores
@@ -132,29 +170,29 @@ export async function analyzeSite(url: string): Promise<AnalysisResult> {
   }
 }
 
-async function collectSiteData(page: puppeteer.Page, url: string, loadTime: number): Promise<SiteData> {
+async function collectSiteData(page: Page, url: string, loadTime: number): Promise<SiteData> {
   // Get page title and meta description
   const title = await page.title();
-  const metaDescription = await page.$eval('meta[name="description"]', (el) => el.getAttribute('content') || '').catch(() => '');
+  const metaDescription = await page.$eval('meta[name="description"]', (el: HTMLMetaElement) => el.getAttribute('content') || '').catch(() => '');
   
   // Check if HTTPS is used
   const isHttps = url.startsWith('https://');
   
   // Count images without alt text
-  const imagesWithoutAlt = await page.$$eval('img:not([alt]), img[alt=""]', (imgs) => imgs.length);
+  const imagesWithoutAlt = await page.$$eval('img:not([alt]), img[alt=""]', (imgs: HTMLImageElement[]) => imgs.length);
   
   // Get total size of page resources
   const resources = await page.evaluate(() => {
-    return performance.getEntriesByType('resource').reduce((total, resource) => {
-      return total + (resource as any).transferSize;
+    return performance.getEntriesByType('resource').reduce((total: number, resource: any) => {
+      return total + (resource.transferSize || 0);
     }, 0);
   });
-  const totalSizeKB = Math.round(resources / 1024);
+  const totalSizeKB = Math.round((resources as number) / 1024);
   
   // Count heading tags
-  const h1Count = await page.$$eval('h1', (h1s) => h1s.length);
-  const h2Count = await page.$$eval('h2', (h2s) => h2s.length);
-  const h3Count = await page.$$eval('h3', (h3s) => h3s.length);
+  const h1Count = await page.$$eval('h1', (h1s: HTMLHeadingElement[]) => h1s.length);
+  const h2Count = await page.$$eval('h2', (h2s: HTMLHeadingElement[]) => h2s.length);
+  const h3Count = await page.$$eval('h3', (h3s: HTMLHeadingElement[]) => h3s.length);
   
   // Check for robots.txt and sitemap.xml
   const hasRobotsTxt = await checkResourceExists(`${new URL(url).origin}/robots.txt`);

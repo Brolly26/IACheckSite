@@ -21,23 +21,53 @@ router.post('/analyze', (req, res) => __awaiter(void 0, void 0, void 0, function
     try {
         const { url } = req.body;
         if (!url) {
-            return res.status(400).json({ error: 'URL is required' });
+            return res.status(400).json({
+                error: 'URL is required',
+                message: 'Por favor, forneça uma URL válida.'
+            });
         }
         // Validate URL format
+        let urlObj;
         try {
-            new URL(url);
+            urlObj = new URL(url);
         }
         catch (error) {
-            return res.status(400).json({ error: 'Invalid URL format' });
+            return res.status(400).json({
+                error: 'Invalid URL format',
+                message: 'Formato de URL inválido. Use: https://exemplo.com'
+            });
         }
+        // Validate URL protocol
+        if (!['http:', 'https:'].includes(urlObj.protocol)) {
+            return res.status(400).json({
+                error: 'Invalid URL protocol',
+                message: 'A URL deve começar com http:// ou https://'
+            });
+        }
+        console.log(`[${new Date().toISOString()}] Analyzing site: ${url}`);
         const analysisResult = yield (0, analyzer_1.analyzeSite)(url);
+        console.log(`[${new Date().toISOString()}] Analysis completed for: ${url}`);
         res.json(analysisResult);
     }
     catch (error) {
-        console.error('Error analyzing site:', error);
+        console.error(`[${new Date().toISOString()}] Error analyzing site:`, error);
+        // Mensagens de erro mais amigáveis
+        let userMessage = 'Ocorreu um erro ao analisar o site. Por favor, tente novamente.';
+        if (error instanceof Error) {
+            if (error.message.includes('Chrome') || error.message.includes('browser')) {
+                userMessage = 'Erro de configuração do servidor. Por favor, contate o administrador.';
+            }
+            else if (error.message.includes('timeout') || error.message.includes('Navigation timeout')) {
+                userMessage = 'O site demorou muito para responder. Tente novamente ou verifique se a URL está correta.';
+            }
+            else if (error.message.includes('net::ERR') || error.message.includes('Failed to navigate')) {
+                userMessage = 'Não foi possível acessar o site. Verifique se a URL está correta e se o site está online.';
+            }
+        }
         res.status(500).json({
             error: 'Failed to analyze site',
-            message: error instanceof Error ? error.message : 'Unknown error'
+            message: userMessage,
+            details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : 'Unknown error') : undefined
         });
     }
 }));

@@ -16,7 +16,7 @@ exports.getMobileStatus = getMobileStatus;
 exports.getMobileDetails = getMobileDetails;
 /**
  * Runs a mobile and responsiveness check on the given URL
- * @param page The Puppeteer page
+ * @param page The Puppeteer page (already navigated)
  * @param url The URL to check
  * @returns Mobile check data
  */
@@ -31,8 +31,8 @@ function runMobileCheck(page, url) {
             isMobile: true,
             hasTouch: true
         });
-        // Navigate to the URL
-        yield page.goto(url, { waitUntil: 'networkidle2' });
+        // Reload page with mobile viewport (faster than full navigation)
+        yield page.reload({ waitUntil: 'networkidle2' });
         // Check if the site has a viewport meta tag
         const hasViewportMeta = yield page.evaluate(() => {
             const viewportMeta = document.querySelector('meta[name="viewport"]');

@@ -1,21 +1,16 @@
-import * as puppeteer from 'puppeteer';
 import { SiteData, CheckItem } from '../../utils/types';
 
 /**
- * Runs an HTTP headers and cache check on the given URL
- * @param page The Puppeteer page
- * @param url The URL to check
+ * Runs an HTTP headers and cache check using headers from initial response
+ * @param headers HTTP headers from the initial page navigation (no extra navigation needed)
  * @returns HTTP headers check data
  */
-export async function runHttpHeadersCheck(page: puppeteer.Page, url: string): Promise<{
+export function runHttpHeadersCheck(headers: Record<string, string>): {
   headers: SiteData['headers']
-}> {
+} {
   console.log('Running HTTP headers and cache check...');
-  
-  // Navigate to the URL and get headers
-  const response = await page.goto(url, { waitUntil: 'networkidle2' });
-  const headers = response?.headers() || {};
-  
+
+  // Use headers passed from initial navigation (no extra page.goto needed)
   return {
     headers: {
       cacheControl: headers['cache-control'] || '',

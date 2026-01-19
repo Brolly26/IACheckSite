@@ -16,15 +16,13 @@ exports.getAnalyticsStatus = getAnalyticsStatus;
 exports.getAnalyticsDetails = getAnalyticsDetails;
 /**
  * Runs an analytics and tracking check on the given URL
- * @param page The Puppeteer page
- * @param url The URL to check
+ * @param page The Puppeteer page (already navigated - no extra navigation needed)
  * @returns Analytics check data
  */
-function runAnalyticsCheck(page, url) {
+function runAnalyticsCheck(page) {
     return __awaiter(this, void 0, void 0, function* () {
         console.log('Running analytics and tracking check...');
-        // Navigate to the URL
-        yield page.goto(url, { waitUntil: 'networkidle2' });
+        // Page already loaded - no navigation needed
         // Check for analytics and tracking tools
         const analyticsData = yield page.evaluate(() => {
             const scripts = Array.from(document.getElementsByTagName('script'));

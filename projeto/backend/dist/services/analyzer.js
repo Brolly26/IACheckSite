@@ -1,37 +1,4 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -46,49 +13,84 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.analyzeSite = analyzeSite;
-const puppeteer = __importStar(require("puppeteer"));
+const puppeteer_core_1 = __importDefault(require("puppeteer-core"));
+const chrome_aws_lambda_1 = __importDefault(require("chrome-aws-lambda"));
 const openai_1 = require("./openai");
 const node_fetch_1 = __importDefault(require("node-fetch"));
 const reports_1 = require("./reports");
 function analyzeSite(url) {
     return __awaiter(this, void 0, void 0, function* () {
-        const browser = yield puppeteer.launch({
+        // Configure browser launch options
+        // In production (Render.com), use chrome-aws-lambda
+        // In development, try to use system Chrome or fallback to chrome-aws-lambda
+        const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER;
+        let launchOptions = {
             headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
-        });
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--disable-gpu',
+                '--window-size=1920x1080'
+            ]
+        };
+        // Use chrome-aws-lambda in production or if PUPPETEER_EXECUTABLE_PATH is not set
+        if (isProduction || !process.env.PUPPETEER_EXECUTABLE_PATH) {
+            try {
+                launchOptions = {
+                    args: chrome_aws_lambda_1.default.args,
+                    defaultViewport: chrome_aws_lambda_1.default.defaultViewport,
+                    executablePath: yield chrome_aws_lambda_1.default.executablePath,
+                    headless: chrome_aws_lambda_1.default.headless,
+                };
+            }
+            catch (error) {
+                console.warn('Failed to use chrome-aws-lambda, falling back to default options:', error);
+            }
+        }
+        else {
+            // Use system Chrome in development if path is provided
+            launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+        }
+        const browser = yield puppeteer_core_1.default.launch(launchOptions);
         try {
             const page = yield browser.newPage();
             // Set timeout to 30 seconds
             yield page.setDefaultNavigationTimeout(30000);
-            // Navigate to the URL
+            // Navigate to the URL and capture response with headers
             console.log(`Navigating to ${url}...`);
             const startTime = Date.now();
-            yield page.goto(url, { waitUntil: 'networkidle2' });
+            const response = yield page.goto(url, { waitUntil: 'networkidle2' });
             const loadTime = (Date.now() - startTime) / 1000;
+            // Capture headers from initial response (reused by reports)
+            const responseHeaders = (response === null || response === void 0 ? void 0 : response.headers()) || {};
             // Collect site data
             console.log('Collecting site data...');
             const siteData = yield collectSiteData(page, url, loadTime);
-            // Run additional checks
+            // Run additional checks (reusing page and headers - NO extra navigation)
             console.log('Running additional checks...');
-            // Security check
-            const securityData = yield (0, reports_1.runSecurityCheck)(page, url);
+            // Security check - pass headers from initial response
+            const securityData = yield (0, reports_1.runSecurityCheck)(page, url, responseHeaders);
             siteData.securityHeaders = securityData.securityHeaders;
             siteData.vulnerableLibraries = securityData.vulnerableLibraries;
-            // Mobile check
+            // Mobile check - needs viewport change but uses reload instead of full navigation
             const mobileData = yield (0, reports_1.runMobileCheck)(page, url);
             siteData.hasViewportMeta = mobileData.hasViewportMeta;
             siteData.fontSizeOnMobile = mobileData.fontSizeOnMobile;
             siteData.clickableAreasSufficient = mobileData.clickableAreasSufficient;
-            // Analytics check
-            const analyticsData = yield (0, reports_1.runAnalyticsCheck)(page, url);
+            // Restore desktop viewport after mobile check
+            yield page.setViewport({ width: 1920, height: 1080 });
+            // Analytics check - page already loaded, no navigation needed
+            const analyticsData = yield (0, reports_1.runAnalyticsCheck)(page);
             siteData.analyticsTools = analyticsData.analyticsTools;
             siteData.trackingScriptPlacement = analyticsData.trackingScriptPlacement;
-            // Technical SEO check
-            const technicalSeoData = yield (0, reports_1.runTechnicalSeoCheck)(page, url);
+            // Technical SEO check - page already loaded, no navigation needed
+            const technicalSeoData = yield (0, reports_1.runTechnicalSeoCheck)(page);
             siteData.metaTags = technicalSeoData.metaTags;
             siteData.hasStructuredData = technicalSeoData.hasStructuredData;
-            // HTTP headers check
-            const httpHeadersData = yield (0, reports_1.runHttpHeadersCheck)(page, url);
+            // HTTP headers check - use headers from initial response
+            const httpHeadersData = yield (0, reports_1.runHttpHeadersCheck)(responseHeaders);
             siteData.headers = httpHeadersData.headers;
             // Generate scores
             const seoScore = calculateSEOScore(siteData);
@@ -172,7 +174,7 @@ function collectSiteData(page, url, loadTime) {
         // Get total size of page resources
         const resources = yield page.evaluate(() => {
             return performance.getEntriesByType('resource').reduce((total, resource) => {
-                return total + resource.transferSize;
+                return total + (resource.transferSize || 0);
             }, 0);
         });
         const totalSizeKB = Math.round(resources / 1024);

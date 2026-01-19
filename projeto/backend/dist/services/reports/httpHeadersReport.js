@@ -1,13 +1,4 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.runHttpHeadersCheck = runHttpHeadersCheck;
 exports.calculateHttpHeadersScore = calculateHttpHeadersScore;
@@ -15,25 +6,20 @@ exports.getHttpHeadersCheckItems = getHttpHeadersCheckItems;
 exports.getHttpHeadersStatus = getHttpHeadersStatus;
 exports.getHttpHeadersDetails = getHttpHeadersDetails;
 /**
- * Runs an HTTP headers and cache check on the given URL
- * @param page The Puppeteer page
- * @param url The URL to check
+ * Runs an HTTP headers and cache check using headers from initial response
+ * @param headers HTTP headers from the initial page navigation (no extra navigation needed)
  * @returns HTTP headers check data
  */
-function runHttpHeadersCheck(page, url) {
-    return __awaiter(this, void 0, void 0, function* () {
-        console.log('Running HTTP headers and cache check...');
-        // Navigate to the URL and get headers
-        const response = yield page.goto(url, { waitUntil: 'networkidle2' });
-        const headers = (response === null || response === void 0 ? void 0 : response.headers()) || {};
-        return {
-            headers: {
-                cacheControl: headers['cache-control'] || '',
-                etag: headers['etag'] || '',
-                expires: headers['expires'] || ''
-            }
-        };
-    });
+function runHttpHeadersCheck(headers) {
+    console.log('Running HTTP headers and cache check...');
+    // Use headers passed from initial navigation (no extra page.goto needed)
+    return {
+        headers: {
+            cacheControl: headers['cache-control'] || '',
+            etag: headers['etag'] || '',
+            expires: headers['expires'] || ''
+        }
+    };
 }
 /**
  * Calculates the HTTP headers score based on the collected data

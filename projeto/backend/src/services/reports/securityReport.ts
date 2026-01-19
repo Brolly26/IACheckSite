@@ -1,4 +1,4 @@
-import * as puppeteer from 'puppeteer';
+import { Page } from 'puppeteer-core';
 import { SiteData, CheckItem } from '../../utils/types';
 
 // Extend Window interface to include jQuery and bootstrap
@@ -20,21 +20,22 @@ declare global {
 
 /**
  * Runs a security check on the given URL
- * @param url The URL to check
+ * @param page The Puppeteer page (already navigated)
+ * @param url The URL being checked
+ * @param headers HTTP headers from initial response (to avoid extra navigation)
  * @returns Security check data
  */
-export async function runSecurityCheck(page: puppeteer.Page, url: string): Promise<{
+export async function runSecurityCheck(
+  page: Page,
+  url: string,
+  headers: Record<string, string>
+): Promise<{
   securityHeaders: SiteData['securityHeaders'],
   vulnerableLibraries: string[]
 }> {
   console.log('Running security check...');
-  
-  // Check if the site uses HTTPS (already done in the main analyzer)
-  
-  // Check security headers
-  const response = await page.goto(url, { waitUntil: 'networkidle2' });
-  const headers = response?.headers() || {};
-  
+
+  // Use headers passed from initial navigation (no extra page.goto needed)
   const securityHeaders = {
     xContentTypeOptions: headers['x-content-type-options']?.toLowerCase() === 'nosniff',
     xFrameOptions: !!headers['x-frame-options'],

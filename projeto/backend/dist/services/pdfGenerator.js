@@ -22,6 +22,26 @@ const stream_1 = require("stream");
  */
 function generatePdfReport(result) {
     return __awaiter(this, void 0, void 0, function* () {
+        // Validation: Check if result structure is valid
+        if (!result) {
+            throw new Error('Analysis result is required');
+        }
+        const requiredFields = ['seo', 'accessibility', 'performance', 'security',
+            'mobile', 'analytics', 'technicalSeo', 'httpHeaders', 'aiAnalysis'];
+        for (const field of requiredFields) {
+            if (!result[field]) {
+                throw new Error(`Missing required field: ${field}`);
+            }
+        }
+        // Validation: Check if scores are valid numbers
+        const scoreFields = ['seo', 'accessibility', 'performance', 'security',
+            'mobile', 'analytics', 'technicalSeo', 'httpHeaders'];
+        for (const field of scoreFields) {
+            const fieldData = result[field];
+            if (typeof (fieldData === null || fieldData === void 0 ? void 0 : fieldData.score) !== 'number' || isNaN(fieldData.score)) {
+                throw new Error(`Invalid score for ${field}. Expected a number.`);
+            }
+        }
         // Create a document
         const doc = new pdfkit_1.default({
             margin: 50,

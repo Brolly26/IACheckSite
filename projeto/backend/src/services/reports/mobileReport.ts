@@ -1,19 +1,19 @@
-import * as puppeteer from 'puppeteer';
+import { Page } from 'puppeteer-core';
 import { SiteData, CheckItem } from '../../utils/types';
 
 /**
  * Runs a mobile and responsiveness check on the given URL
- * @param page The Puppeteer page
+ * @param page The Puppeteer page (already navigated)
  * @param url The URL to check
  * @returns Mobile check data
  */
-export async function runMobileCheck(page: puppeteer.Page, url: string): Promise<{
+export async function runMobileCheck(page: Page, url: string): Promise<{
   hasViewportMeta: boolean,
   fontSizeOnMobile: string,
   clickableAreasSufficient: boolean
 }> {
   console.log('Running mobile and responsiveness check...');
-  
+
   // Set mobile viewport
   await page.setViewport({
     width: 375,
@@ -22,9 +22,9 @@ export async function runMobileCheck(page: puppeteer.Page, url: string): Promise
     isMobile: true,
     hasTouch: true
   });
-  
-  // Navigate to the URL
-  await page.goto(url, { waitUntil: 'networkidle2' });
+
+  // Reload page with mobile viewport (faster than full navigation)
+  await page.reload({ waitUntil: 'networkidle2' });
   
   // Check if the site has a viewport meta tag
   const hasViewportMeta = await page.evaluate(() => {

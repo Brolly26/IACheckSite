@@ -1,21 +1,19 @@
-import * as puppeteer from 'puppeteer';
+import { Page } from 'puppeteer-core';
 import { SiteData, CheckItem } from '../../utils/types';
 
 /**
  * Runs an analytics and tracking check on the given URL
- * @param page The Puppeteer page
- * @param url The URL to check
+ * @param page The Puppeteer page (already navigated - no extra navigation needed)
  * @returns Analytics check data
  */
-export async function runAnalyticsCheck(page: puppeteer.Page, url: string): Promise<{
+export async function runAnalyticsCheck(page: Page): Promise<{
   analyticsTools: SiteData['analyticsTools'],
   trackingScriptPlacement: SiteData['trackingScriptPlacement']
 }> {
   console.log('Running analytics and tracking check...');
-  
-  // Navigate to the URL
-  await page.goto(url, { waitUntil: 'networkidle2' });
-  
+
+  // Page already loaded - no navigation needed
+
   // Check for analytics and tracking tools
   const analyticsData = await page.evaluate(() => {
     const scripts = Array.from(document.getElementsByTagName('script'));

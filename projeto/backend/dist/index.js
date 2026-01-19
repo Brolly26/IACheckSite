@@ -9,30 +9,40 @@ const dotenv_1 = __importDefault(require("dotenv"));
 const analyze_1 = require("./routes/analyze");
 // Load environment variables
 dotenv_1.default.config();
-// Check for required environment variables
+// Check for OpenAI API key (optional - system will work without it)
 if (!process.env.OPENAI_API_KEY) {
-    console.error('OPENAI_API_KEY is required in .env file');
-    process.exit(1);
+    console.warn('⚠️  OPENAI_API_KEY not found. AI analysis will use fallback mode.');
+    console.warn('   The system will still work, but analysis will be generated without OpenAI.');
+}
+else {
+    console.log('✅ OpenAI API key found. AI analysis enabled.');
 }
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 3001;
-// CORS configuration
+// CORS configuration - restrict to frontend domains
 const allowedOrigins = [
     'https://ia-check-site-rvrt.vercel.app',
-    'https://ia-check-site-rvrt-1xbv5bzhk-brolly26s-projects.vercel.app' // domínio temporário do Vercel
-];
+    'https://ia-check-site-rvrt-1xbv5bzhk-brolly26s-projects.vercel.app',
+    process.env.FRONTEND_URL // Allow custom frontend URL from env
+].filter(Boolean); // Remove undefined values
 app.use((0, cors_1.default)({
-    origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
+    origin: process.env.NODE_ENV === 'production'
+        ? (origin, callback) => {
+            // Allow requests with no origin (mobile apps, curl, etc) or from allowed origins
+            if (!origin || allowedOrigins.includes(origin)) {
+                callback(null, true);
+            }
+            else {
+                console.warn(`CORS blocked origin: ${origin}`);
+                callback(null, false);
+            }
         }
-        else {
-            callback(new Error(`Not allowed by CORS: ${origin}`));
-        }
-    },
+        : '*', // Development allows all origins
+    credentials: true,
     methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type']
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
+app.options('*', (0, cors_1.default)());
 // Middlewares
 app.use(express_1.default.json());
 // Routes

@@ -16,17 +16,16 @@ exports.getSecurityStatus = getSecurityStatus;
 exports.getSecurityDetails = getSecurityDetails;
 /**
  * Runs a security check on the given URL
- * @param url The URL to check
+ * @param page The Puppeteer page (already navigated)
+ * @param url The URL being checked
+ * @param headers HTTP headers from initial response (to avoid extra navigation)
  * @returns Security check data
  */
-function runSecurityCheck(page, url) {
+function runSecurityCheck(page, url, headers) {
     return __awaiter(this, void 0, void 0, function* () {
         var _a;
         console.log('Running security check...');
-        // Check if the site uses HTTPS (already done in the main analyzer)
-        // Check security headers
-        const response = yield page.goto(url, { waitUntil: 'networkidle2' });
-        const headers = (response === null || response === void 0 ? void 0 : response.headers()) || {};
+        // Use headers passed from initial navigation (no extra page.goto needed)
         const securityHeaders = {
             xContentTypeOptions: ((_a = headers['x-content-type-options']) === null || _a === void 0 ? void 0 : _a.toLowerCase()) === 'nosniff',
             xFrameOptions: !!headers['x-frame-options'],

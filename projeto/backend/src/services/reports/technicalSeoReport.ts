@@ -1,21 +1,19 @@
-import * as puppeteer from 'puppeteer';
+import { Page } from 'puppeteer-core';
 import { SiteData, CheckItem } from '../../utils/types';
 
 /**
  * Runs a technical SEO check on the given URL
- * @param page The Puppeteer page
- * @param url The URL to check
+ * @param page The Puppeteer page (already navigated - no extra navigation needed)
  * @returns Technical SEO check data
  */
-export async function runTechnicalSeoCheck(page: puppeteer.Page, url: string): Promise<{
+export async function runTechnicalSeoCheck(page: Page): Promise<{
   metaTags: SiteData['metaTags'],
   hasStructuredData: boolean
 }> {
   console.log('Running technical SEO check...');
-  
-  // Navigate to the URL
-  await page.goto(url, { waitUntil: 'networkidle2' });
-  
+
+  // Page already loaded - no navigation needed
+
   // Check meta tags and structured data
   const seoData = await page.evaluate(() => {
     // Check meta tags

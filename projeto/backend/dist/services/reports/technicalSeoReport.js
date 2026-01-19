@@ -16,15 +16,13 @@ exports.getTechnicalSeoStatus = getTechnicalSeoStatus;
 exports.getTechnicalSeoDetails = getTechnicalSeoDetails;
 /**
  * Runs a technical SEO check on the given URL
- * @param page The Puppeteer page
- * @param url The URL to check
+ * @param page The Puppeteer page (already navigated - no extra navigation needed)
  * @returns Technical SEO check data
  */
-function runTechnicalSeoCheck(page, url) {
+function runTechnicalSeoCheck(page) {
     return __awaiter(this, void 0, void 0, function* () {
         console.log('Running technical SEO check...');
-        // Navigate to the URL
-        yield page.goto(url, { waitUntil: 'networkidle2' });
+        // Page already loaded - no navigation needed
         // Check meta tags and structured data
         const seoData = yield page.evaluate(() => {
             // Check meta tags
