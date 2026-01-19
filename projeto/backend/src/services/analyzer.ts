@@ -54,16 +54,22 @@ export async function analyzeSite(url: string): Promise<AnalysisResult> {
   }
 
   const browser = await puppeteer.launch(launchOptions);
-  
+
   try {
     const page = await browser.newPage();
-    
-    // Set timeout to 30 seconds
-    await page.setDefaultNavigationTimeout(30000);
-    
+
+    // Set timeout to 60 seconds (Render free tier is slow)
+    await page.setDefaultNavigationTimeout(60000);
+
     // Navigate to the URL and capture response with headers
+    // Use 'domcontentloaded' first (faster), then wait for network to settle
     console.log(`Navigating to ${url}...`);
-    const response = await page.goto(url, { waitUntil: 'networkidle2' });
+    const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+
+    // Wait a bit for dynamic content to load (but don't wait forever)
+    await page.waitForNetworkIdle({ idleTime: 1000, timeout: 15000 }).catch(() => {
+      console.log('Network idle timeout - continuing with current page state');
+    });
 
     // Capture headers from initial response (reused by reports)
     const responseHeaders = response?.headers() || {};
