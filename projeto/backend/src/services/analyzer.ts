@@ -20,24 +20,19 @@ export async function analyzeSite(url: string): Promise<AnalysisResult> {
   // Configure browser launch options - optimized for speed
   const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER;
 
-  // Aggressive optimization flags for Chromium
+  // Optimization flags for Chromium (safe for Render)
   const minimalArgs = [
     '--no-sandbox',
     '--disable-setuid-sandbox',
     '--disable-dev-shm-usage',
     '--disable-gpu',
-    '--disable-software-rasterizer',
     '--disable-extensions',
     '--disable-background-networking',
-    '--disable-default-apps',
     '--disable-sync',
     '--disable-translate',
     '--hide-scrollbars',
     '--mute-audio',
     '--no-first-run',
-    '--safebrowsing-disable-auto-update',
-    '--single-process', // Important for low-memory environments
-    '--no-zygote', // Important for containerized environments
   ];
 
   let launchOptions: any;
