@@ -1,5 +1,5 @@
 import puppeteer, { Page } from 'puppeteer-core';
-import chromium from 'chrome-aws-lambda';
+import chromium from '@sparticuz/chromium';
 import { generateAIAnalysis } from './openai';
 import { SiteData, AnalysisResult, CheckItem } from '../utils/types';
 import fetch from 'node-fetch';
@@ -15,37 +15,42 @@ import {
 
 export async function analyzeSite(url: string): Promise<AnalysisResult> {
   // Configure browser launch options
-  // In production (Render.com), use chrome-aws-lambda
-  // In development, try to use system Chrome or fallback to chrome-aws-lambda
   const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER;
-  
-  let launchOptions: any = {
-    headless: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-accelerated-2d-canvas',
-      '--disable-gpu',
-      '--window-size=1920x1080'
-    ]
-  };
 
-  // Use chrome-aws-lambda in production or if PUPPETEER_EXECUTABLE_PATH is not set
-  if (isProduction || !process.env.PUPPETEER_EXECUTABLE_PATH) {
-    try {
-      launchOptions = {
-        args: chromium.args,
-        defaultViewport: chromium.defaultViewport,
-        executablePath: await chromium.executablePath,
-        headless: chromium.headless,
-      };
-    } catch (error) {
-      console.warn('Failed to use chrome-aws-lambda, falling back to default options:', error);
-    }
+  let launchOptions: any;
+
+  if (isProduction) {
+    // Production: Use @sparticuz/chromium (for Render, Vercel, AWS Lambda, etc)
+    console.log('🚀 Using @sparticuz/chromium for production...');
+    launchOptions = {
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+    };
+  } else if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    // Development with custom Chrome path
+    console.log('💻 Using custom Chrome path for development...');
+    launchOptions = {
+      headless: true,
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--window-size=1920x1080'
+      ]
+    };
   } else {
-    // Use system Chrome in development if path is provided
-    launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+    // Fallback: Try @sparticuz/chromium
+    console.log('🔄 Fallback to @sparticuz/chromium...');
+    launchOptions = {
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+    };
   }
 
   const browser = await puppeteer.launch(launchOptions);
