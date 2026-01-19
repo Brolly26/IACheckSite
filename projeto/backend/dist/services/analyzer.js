@@ -61,16 +61,13 @@ function analyzeSite(url) {
         const browser = yield puppeteer_core_1.default.launch(launchOptions);
         try {
             const page = yield browser.newPage();
-            // Set timeout to 60 seconds (Render free tier is slow)
-            yield page.setDefaultNavigationTimeout(60000);
-            // Navigate to the URL and capture response with headers
-            // Use 'domcontentloaded' first (faster), then wait for network to settle
+            // Set timeout to 45 seconds
+            yield page.setDefaultNavigationTimeout(45000);
+            // Navigate to the URL - use 'load' event (standard, reliable)
             console.log(`Navigating to ${url}...`);
-            const response = yield page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
-            // Wait a bit for dynamic content to load (but don't wait forever)
-            yield page.waitForNetworkIdle({ idleTime: 1000, timeout: 15000 }).catch(() => {
-                console.log('Network idle timeout - continuing with current page state');
-            });
+            const response = yield page.goto(url, { waitUntil: 'load', timeout: 45000 });
+            // Small delay for JS to execute (2 seconds max)
+            yield new Promise(resolve => setTimeout(resolve, 2000));
             // Capture headers from initial response (reused by reports)
             const responseHeaders = (response === null || response === void 0 ? void 0 : response.headers()) || {};
             // Get REAL load time from browser's Performance API (not server time)

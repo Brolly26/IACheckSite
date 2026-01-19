@@ -58,18 +58,15 @@ export async function analyzeSite(url: string): Promise<AnalysisResult> {
   try {
     const page = await browser.newPage();
 
-    // Set timeout to 60 seconds (Render free tier is slow)
-    await page.setDefaultNavigationTimeout(60000);
+    // Set timeout to 45 seconds
+    await page.setDefaultNavigationTimeout(45000);
 
-    // Navigate to the URL and capture response with headers
-    // Use 'domcontentloaded' first (faster), then wait for network to settle
+    // Navigate to the URL - use 'load' event (standard, reliable)
     console.log(`Navigating to ${url}...`);
-    const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    const response = await page.goto(url, { waitUntil: 'load', timeout: 45000 });
 
-    // Wait a bit for dynamic content to load (but don't wait forever)
-    await page.waitForNetworkIdle({ idleTime: 1000, timeout: 15000 }).catch(() => {
-      console.log('Network idle timeout - continuing with current page state');
-    });
+    // Small delay for JS to execute (2 seconds max)
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Capture headers from initial response (reused by reports)
     const responseHeaders = response?.headers() || {};
