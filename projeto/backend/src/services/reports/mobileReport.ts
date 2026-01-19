@@ -14,7 +14,20 @@ export async function runMobileCheck(page: Page, url: string): Promise<{
 }> {
   console.log('Running mobile and responsiveness check...');
 
-  // Set mobile viewport
+  // FIRST: Check viewport meta tag BEFORE changing viewport (more accurate)
+  const hasViewportMeta = await page.evaluate(() => {
+    const viewportMeta = document.querySelector('meta[name="viewport"]');
+    if (!viewportMeta) return false;
+
+    // Also check if viewport has proper content
+    const content = viewportMeta.getAttribute('content') || '';
+    return content.includes('width=device-width') || content.includes('width=');
+  });
+
+  // Save current viewport
+  const originalViewport = page.viewport();
+
+  // Set mobile viewport for font/clickable area checks
   await page.setViewport({
     width: 375,
     height: 667,
@@ -23,14 +36,8 @@ export async function runMobileCheck(page: Page, url: string): Promise<{
     hasTouch: true
   });
 
-  // Reload page with mobile viewport (faster than full navigation)
-  await page.reload({ waitUntil: 'networkidle2' });
-  
-  // Check if the site has a viewport meta tag
-  const hasViewportMeta = await page.evaluate(() => {
-    const viewportMeta = document.querySelector('meta[name="viewport"]');
-    return !!viewportMeta;
-  });
+  // Small delay to let CSS recalculate (no reload needed)
+  await new Promise(resolve => setTimeout(resolve, 500));
   
   // Check font sizes on mobile
   const fontSizeData = await page.evaluate(() => {
@@ -77,7 +84,12 @@ export async function runMobileCheck(page: Page, url: string): Promise<{
     // If more than 20% of clickable elements are too small, consider it insufficient
     return percentTooSmall <= 20;
   });
-  
+
+  // Restore original viewport
+  if (originalViewport) {
+    await page.setViewport(originalViewport);
+  }
+
   return {
     hasViewportMeta,
     fontSizeOnMobile: fontSizeData,

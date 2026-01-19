@@ -63,12 +63,34 @@ export async function analyzeSite(url: string): Promise<AnalysisResult> {
     
     // Navigate to the URL and capture response with headers
     console.log(`Navigating to ${url}...`);
-    const startTime = Date.now();
     const response = await page.goto(url, { waitUntil: 'networkidle2' });
-    const loadTime = (Date.now() - startTime) / 1000;
 
     // Capture headers from initial response (reused by reports)
     const responseHeaders = response?.headers() || {};
+
+    // Get REAL load time from browser's Performance API (not server time)
+    const performanceTiming = await page.evaluate(() => {
+      const timing = performance.timing;
+      // Time from navigation start to DOM content loaded
+      const domContentLoaded = timing.domContentLoadedEventEnd - timing.navigationStart;
+      // Time from navigation start to full load
+      const fullLoad = timing.loadEventEnd - timing.navigationStart;
+
+      // Use domContentLoaded as primary metric (more reliable)
+      // If it's 0 or negative, use performance.now() as fallback
+      if (domContentLoaded > 0) {
+        return domContentLoaded / 1000; // Convert to seconds
+      } else if (fullLoad > 0) {
+        return fullLoad / 1000;
+      } else {
+        // Fallback: use time since navigation
+        return performance.now() / 1000;
+      }
+    });
+
+    // Cap at reasonable max (30s) and ensure minimum (0.1s)
+    const loadTime = Math.max(0.1, Math.min(30, performanceTiming));
+    console.log(`Page load time: ${loadTime.toFixed(2)}s`);
 
     // Collect site data
     console.log('Collecting site data...');
@@ -82,14 +104,11 @@ export async function analyzeSite(url: string): Promise<AnalysisResult> {
     siteData.securityHeaders = securityData.securityHeaders;
     siteData.vulnerableLibraries = securityData.vulnerableLibraries;
 
-    // Mobile check - needs viewport change but uses reload instead of full navigation
+    // Mobile check - changes viewport temporarily, restores automatically
     const mobileData = await runMobileCheck(page, url);
     siteData.hasViewportMeta = mobileData.hasViewportMeta;
     siteData.fontSizeOnMobile = mobileData.fontSizeOnMobile;
     siteData.clickableAreasSufficient = mobileData.clickableAreasSufficient;
-
-    // Restore desktop viewport after mobile check
-    await page.setViewport({ width: 1920, height: 1080 });
 
     // Analytics check - page already loaded, no navigation needed
     const analyticsData = await runAnalyticsCheck(page);
@@ -186,13 +205,45 @@ async function collectSiteData(page: Page, url: string, loadTime: number): Promi
   // Count images without alt text
   const imagesWithoutAlt = await page.$$eval('img:not([alt]), img[alt=""]', (imgs: HTMLImageElement[]) => imgs.length);
   
-  // Get total size of page resources
-  const resources = await page.evaluate(() => {
-    return performance.getEntriesByType('resource').reduce((total: number, resource: any) => {
-      return total + (resource.transferSize || 0);
-    }, 0);
+  // Get total size of page (HTML + inline resources)
+  const pageMetrics = await page.evaluate(() => {
+    // Get HTML size
+    const htmlSize = new Blob([document.documentElement.outerHTML]).size;
+
+    // Try to get resource sizes (may be 0 for cross-origin)
+    const resourceEntries = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
+    let resourceSize = 0;
+
+    resourceEntries.forEach((resource) => {
+      // Use transferSize if available, otherwise encodedBodySize
+      const size = resource.transferSize || resource.encodedBodySize || 0;
+      resourceSize += size;
+    });
+
+    // Count scripts, stylesheets, images for estimation if resource API fails
+    const scripts = document.querySelectorAll('script[src]').length;
+    const stylesheets = document.querySelectorAll('link[rel="stylesheet"]').length;
+    const images = document.querySelectorAll('img').length;
+
+    return {
+      htmlSize,
+      resourceSize,
+      estimatedResources: { scripts, stylesheets, images }
+    };
   });
-  const totalSizeKB = Math.round((resources as number) / 1024);
+
+  // Calculate total size - use actual if available, otherwise estimate
+  let totalSizeKB = Math.round(pageMetrics.htmlSize / 1024);
+
+  if (pageMetrics.resourceSize > 0) {
+    totalSizeKB = Math.round((pageMetrics.htmlSize + pageMetrics.resourceSize) / 1024);
+  } else {
+    // Estimate: average script ~50KB, stylesheet ~20KB, image ~100KB
+    const estimated = (pageMetrics.estimatedResources.scripts * 50) +
+                      (pageMetrics.estimatedResources.stylesheets * 20) +
+                      (pageMetrics.estimatedResources.images * 100);
+    totalSizeKB += estimated;
+  }
   
   // Count heading tags
   const h1Count = await page.$$eval('h1', (h1s: HTMLHeadingElement[]) => h1s.length);

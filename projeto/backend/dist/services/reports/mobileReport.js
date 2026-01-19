@@ -23,7 +23,18 @@ exports.getMobileDetails = getMobileDetails;
 function runMobileCheck(page, url) {
     return __awaiter(this, void 0, void 0, function* () {
         console.log('Running mobile and responsiveness check...');
-        // Set mobile viewport
+        // FIRST: Check viewport meta tag BEFORE changing viewport (more accurate)
+        const hasViewportMeta = yield page.evaluate(() => {
+            const viewportMeta = document.querySelector('meta[name="viewport"]');
+            if (!viewportMeta)
+                return false;
+            // Also check if viewport has proper content
+            const content = viewportMeta.getAttribute('content') || '';
+            return content.includes('width=device-width') || content.includes('width=');
+        });
+        // Save current viewport
+        const originalViewport = page.viewport();
+        // Set mobile viewport for font/clickable area checks
         yield page.setViewport({
             width: 375,
             height: 667,
@@ -31,13 +42,8 @@ function runMobileCheck(page, url) {
             isMobile: true,
             hasTouch: true
         });
-        // Reload page with mobile viewport (faster than full navigation)
-        yield page.reload({ waitUntil: 'networkidle2' });
-        // Check if the site has a viewport meta tag
-        const hasViewportMeta = yield page.evaluate(() => {
-            const viewportMeta = document.querySelector('meta[name="viewport"]');
-            return !!viewportMeta;
-        });
+        // Small delay to let CSS recalculate (no reload needed)
+        yield new Promise(resolve => setTimeout(resolve, 500));
         // Check font sizes on mobile
         const fontSizeData = yield page.evaluate(() => {
             const textElements = Array.from(document.querySelectorAll('p, h1, h2, h3, h4, h5, h6, span, a, button, input, label'));
@@ -76,6 +82,10 @@ function runMobileCheck(page, url) {
             // If more than 20% of clickable elements are too small, consider it insufficient
             return percentTooSmall <= 20;
         });
+        // Restore original viewport
+        if (originalViewport) {
+            yield page.setViewport(originalViewport);
+        }
         return {
             hasViewportMeta,
             fontSizeOnMobile: fontSizeData,
