@@ -279,7 +279,23 @@ function addScoreOverview(doc: PDFKit.PDFDocument, result: AnalysisResult, opts:
      .lineTo(doc.page.width - 50, doc.y)
      .stroke();
 
-  doc.moveDown(1.5);
+  doc.moveDown(1);
+}
+
+/**
+ * Checks if there's enough space on the current page
+ * If not, adds a new page
+ * @param doc The PDF document
+ * @param requiredSpace Minimum space required in pixels
+ */
+function ensurePageSpace(doc: PDFKit.PDFDocument, requiredSpace: number = 150): void {
+  const pageHeight = doc.page.height;
+  const bottomMargin = 60; // Space for footer
+  const availableSpace = pageHeight - bottomMargin - doc.y;
+
+  if (availableSpace < requiredSpace) {
+    doc.addPage();
+  }
 }
 
 /**
@@ -289,6 +305,9 @@ function addScoreOverview(doc: PDFKit.PDFDocument, result: AnalysisResult, opts:
  * @param score Score value
  */
 function addSectionHeader(doc: PDFKit.PDFDocument, title: string, score: number): void {
+  // Ensure we have enough space for the header AND some content (at least 120px)
+  ensurePageSpace(doc, 120);
+
   const y = doc.y;
 
   // Title on the left
@@ -310,10 +329,12 @@ function addSectionHeader(doc: PDFKit.PDFDocument, title: string, score: number)
  * @param result The analysis result
  */
 function addBasicReports(doc: PDFKit.PDFDocument, result: AnalysisResult): void {
+  ensurePageSpace(doc, 180);
+
   doc.fontSize(18)
      .fillColor('#333333')
      .text('Relatórios Básicos', 50, doc.y)
-     .moveDown(1);
+     .moveDown(0.5);
 
   // SEO
   addSectionHeader(doc, 'SEO', result.seo.score);
@@ -391,7 +412,7 @@ function addBasicReports(doc: PDFKit.PDFDocument, result: AnalysisResult): void 
     });
   }
 
-  doc.moveDown(2);
+  doc.moveDown(1);
 }
 
 /**
@@ -400,6 +421,7 @@ function addBasicReports(doc: PDFKit.PDFDocument, result: AnalysisResult): void 
  * @param result The analysis result
  */
 function addSecurityReport(doc: PDFKit.PDFDocument, result: AnalysisResult): void {
+  ensurePageSpace(doc, 150);
   addSectionHeader(doc, 'Segurança', result.security.score);
 
   doc.fontSize(12)
@@ -421,7 +443,7 @@ function addSecurityReport(doc: PDFKit.PDFDocument, result: AnalysisResult): voi
        .moveDown(0.3);
   });
 
-  doc.moveDown(2);
+  doc.moveDown(1);
 }
 
 /**
@@ -430,6 +452,7 @@ function addSecurityReport(doc: PDFKit.PDFDocument, result: AnalysisResult): voi
  * @param result The analysis result
  */
 function addMobileReport(doc: PDFKit.PDFDocument, result: AnalysisResult): void {
+  ensurePageSpace(doc, 150);
   addSectionHeader(doc, 'Mobile e Responsividade', result.mobile.score);
 
   doc.fontSize(12)
@@ -451,7 +474,7 @@ function addMobileReport(doc: PDFKit.PDFDocument, result: AnalysisResult): void 
        .moveDown(0.3);
   });
 
-  doc.moveDown(2);
+  doc.moveDown(1);
 }
 
 /**
@@ -460,6 +483,7 @@ function addMobileReport(doc: PDFKit.PDFDocument, result: AnalysisResult): void 
  * @param result The analysis result
  */
 function addAnalyticsReport(doc: PDFKit.PDFDocument, result: AnalysisResult): void {
+  ensurePageSpace(doc, 150);
   addSectionHeader(doc, 'Analytics e Rastreamento', result.analytics.score);
 
   doc.fontSize(12)
@@ -481,7 +505,7 @@ function addAnalyticsReport(doc: PDFKit.PDFDocument, result: AnalysisResult): vo
        .moveDown(0.3);
   });
 
-  doc.moveDown(2);
+  doc.moveDown(1);
 }
 
 /**
@@ -490,6 +514,7 @@ function addAnalyticsReport(doc: PDFKit.PDFDocument, result: AnalysisResult): vo
  * @param result The analysis result
  */
 function addTechnicalSeoReport(doc: PDFKit.PDFDocument, result: AnalysisResult): void {
+  ensurePageSpace(doc, 150);
   addSectionHeader(doc, 'SEO Técnico', result.technicalSeo.score);
 
   doc.fontSize(12)
@@ -511,7 +536,7 @@ function addTechnicalSeoReport(doc: PDFKit.PDFDocument, result: AnalysisResult):
        .moveDown(0.3);
   });
 
-  doc.moveDown(2);
+  doc.moveDown(1);
 }
 
 /**
@@ -520,6 +545,7 @@ function addTechnicalSeoReport(doc: PDFKit.PDFDocument, result: AnalysisResult):
  * @param result The analysis result
  */
 function addHttpHeadersReport(doc: PDFKit.PDFDocument, result: AnalysisResult): void {
+  ensurePageSpace(doc, 150);
   addSectionHeader(doc, 'Headers HTTP e Cache', result.httpHeaders.score);
 
   doc.fontSize(12)
@@ -541,7 +567,7 @@ function addHttpHeadersReport(doc: PDFKit.PDFDocument, result: AnalysisResult): 
        .moveDown(0.3);
   });
 
-  doc.moveDown(2);
+  doc.moveDown(1);
 }
 
 /**
@@ -607,8 +633,8 @@ function addAiAnalysis(doc: PDFKit.PDFDocument, result: AnalysisResult): void {
         // Continue with next paragraph
       }
     });
-    
-    doc.moveDown(2);
+
+    doc.moveDown(1);
   } catch (error) {
     console.error('Error adding AI analysis to PDF:', error);
     // Continue without AI analysis if there's an error

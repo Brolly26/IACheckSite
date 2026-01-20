@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SiteCheck.ai - Apresentação</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background: #fff;
+    }
+
+    .page {
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 60px 50px;
+      page-break-after: always;
+      min-height: 100vh;
+    }
+
+    .page:last-child {
+      page-break-after: avoid;
+    }
+
+    /* Cover Page */
+    .cover {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      color: white;
+    }
+
+    .cover h1 {
+      font-size: 56px;
+      font-weight: 700;
+      margin-bottom: 20px;
+    }
+
+    .cover .subtitle {
+      font-size: 24px;
+      opacity: 0.9;
+      margin-bottom: 60px;
+    }
+
+    .cover .tagline {
+      font-size: 18px;
+      opacity: 0.8;
+      max-width: 500px;
+    }
+
+    /* Section Headers */
+    h2 {
+      font-size: 32px;
+      color: #2563eb;
+      margin-bottom: 30px;
+      padding-bottom: 10px;
+      border-bottom: 3px solid #2563eb;
+    }
+
+    h3 {
+      font-size: 22px;
+      color: #1e40af;
+      margin: 25px 0 15px 0;
+    }
+
+    p {
+      margin-bottom: 15px;
+      font-size: 16px;
+    }
+
+    /* Problem Section */
+    .problem-list {
+      list-style: none;
+    }
+
+    .problem-list li {
+      padding: 15px 20px;
+      margin: 10px 0;
+      background: #fef2f2;
+      border-left: 4px solid #ef4444;
+      border-radius: 0 8px 8px 0;
+    }
+
+    .problem-list li strong {
+      color: #dc2626;
+    }
+
+    /* Solution Section */
+    .solution-box {
+      background: #f0fdf4;
+      border: 2px solid #22c55e;
+      border-radius: 12px;
+      padding: 30px;
+      margin: 20px 0;
+    }
+
+    .steps {
+      display: flex;
+      justify-content: space-between;
+      margin: 30px 0;
+    }
+
+    .step {
+      text-align: center;
+      flex: 1;
+      padding: 20px;
+    }
+
+    .step-number {
+      width: 50px;
+      height: 50px;
+      background: #2563eb;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: bold;
+      margin: 0 auto 15px;
+    }
+
+    /* Features Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+
+    th, td {
+      padding: 12px 15px;
+      text-align: left;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    th {
+      background: #2563eb;
+      color: white;
+      font-weight: 600;
+    }
+
+    tr:nth-child(even) {
+      background: #f9fafb;
+    }
+
+    /* Differentials */
+    .differential {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 25px;
+      margin: 15px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .differential h4 {
+      color: #2563eb;
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+
+    /* PDF Example */
+    .pdf-example {
+      background: #f8fafc;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 30px;
+      font-family: monospace;
+      font-size: 14px;
+      line-height: 1.8;
+    }
+
+    .score-bar {
+      display: inline-block;
+      height: 12px;
+      background: #e5e7eb;
+      border-radius: 6px;
+      width: 100px;
+      margin-left: 10px;
+      position: relative;
+      vertical-align: middle;
+    }
+
+    .score-bar-fill {
+      height: 100%;
+      border-radius: 6px;
+      background: #22c55e;
+    }
+
+    /* Use Cases */
+    .use-case {
+      background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+      border-radius: 12px;
+      padding: 20px;
+      margin: 15px 0;
+    }
+
+    .use-case h4 {
+      color: #1e40af;
+      margin-bottom: 10px;
+    }
+
+    .use-case blockquote {
+      font-style: italic;
+      color: #4b5563;
+      border-left: 3px solid #2563eb;
+      padding-left: 15px;
+      margin: 10px 0;
+    }
+
+    /* Checklist */
+    .checklist {
+      list-style: none;
+    }
+
+    .checklist li {
+      padding: 8px 0;
+      padding-left: 30px;
+      position: relative;
+    }
+
+    .checklist li::before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      color: #22c55e;
+      font-weight: bold;
+    }
+
+    .checklist li.pending::before {
+      content: "○";
+      color: #9ca3af;
+    }
+
+    /* Architecture */
+    .architecture {
+      background: #1e293b;
+      color: #e2e8f0;
+      border-radius: 12px;
+      padding: 30px;
+      font-family: monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      white-space: pre;
+      overflow-x: auto;
+    }
+
+    /* Contact */
+    .contact {
+      text-align: center;
+      padding: 40px;
+    }
+
+    .contact h2 {
+      border: none;
+      margin-bottom: 40px;
+    }
+
+    .contact-info {
+      font-size: 18px;
+      margin: 15px 0;
+    }
+
+    .contact-info a {
+      color: #2563eb;
+      text-decoration: none;
+    }
+
+    /* Print styles */
+    @media print {
+      .page {
+        padding: 40px;
+        margin: 0;
+      }
+
+      .cover {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Page 1: Cover -->
+  <div class="page cover">
+    <h1>SiteCheck.ai</h1>
+    <p class="subtitle">Diagnóstico Inteligente de Websites</p>
+    <p class="tagline">
+      Analise sites automaticamente e gere relatórios profissionais
+      com Inteligência Artificial para seus clientes.
+    </p>
+  </div>
+
+  <!-- Page 2: Problem -->
+  <div class="page">
+    <h2>O Problema</h2>
+    <p>As agências de marketing digital enfrentam desafios diários:</p>
+
+    <ul class="problem-list">
+      <li><strong>Tempo perdido</strong> analisando sites manualmente</li>
+      <li><strong>Falta de padronização</strong> nos relatórios para clientes</li>
+      <li><strong>Dificuldade em demonstrar valor</strong> técnico de forma clara</li>
+      <li><strong>Custo alto</strong> de ferramentas especializadas (SEMrush, Ahrefs, etc.)</li>
+    </ul>
+
+    <h3>O Custo do Problema</h3>
+    <p>Uma análise manual de site pode levar <strong>1-2 horas</strong>. Com 10 prospects por semana, são <strong>20 horas mensais</strong> perdidas apenas em análises iniciais.</p>
+  </div>
+
+  <!-- Page 3: Solution -->
+  <div class="page">
+    <h2>A Solução: SiteCheck.ai</h2>
+
+    <div class="solution-box">
+      <p style="font-size: 18px; text-align: center; margin: 0;">
+        Uma ferramenta <strong>B2B</strong> que analisa websites automaticamente<br>
+        e gera relatórios profissionais com IA.
+      </p>
+    </div>
+
+    <h3>Como Funciona</h3>
+    <div class="steps">
+      <div class="step">
+        <div class="step-number">1</div>
+        <strong>Insira a URL</strong>
+        <p>Cole o endereço do site do cliente</p>
+      </div>
+      <div class="step">
+        <div class="step-number">2</div>
+        <strong>Aguarde ~10s</strong>
+        <p>Análise completa automática</p>
+      </div>
+      <div class="step">
+        <div class="step-number">3</div>
+        <strong>Baixe o PDF</strong>
+        <p>Relatório com sua marca</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Page 4: What We Analyze -->
+  <div class="page">
+    <h2>O Que Analisamos</h2>
+
+    <table>
+      <tr>
+        <th>Categoria</th>
+        <th>O que verificamos</th>
+      </tr>
+      <tr>
+        <td><strong>SEO</strong></td>
+        <td>Título, meta description, headings, robots.txt, sitemap</td>
+      </tr>
+      <tr>
+        <td><strong>Performance</strong></td>
+        <td>Tempo de carregamento, tamanho da página</td>
+      </tr>
+      <tr>
+        <td><strong>Segurança</strong></td>
+        <td>HTTPS, headers de segurança, bibliotecas vulneráveis</td>
+      </tr>
+      <tr>
+        <td><strong>Mobile</strong></td>
+        <td>Responsividade, viewport, áreas clicáveis</td>
+      </tr>
+      <tr>
+        <td><strong>Analytics</strong></td>
+        <td>Google Analytics, Meta Pixel, LinkedIn Insight</td>
+      </tr>
+      <tr>
+        <td><strong>SEO Técnico</strong></td>
+        <td>Canonical, Open Graph, dados estruturados</td>
+      </tr>
+      <tr>
+        <td><strong>Headers HTTP</strong></td>
+        <td>Cache-Control, ETag, compressão</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Page 5: Differentials -->
+  <div class="page">
+    <h2>Diferenciais</h2>
+
+    <div class="differential">
+      <h4>1. Relatório com IA</h4>
+      <p>A inteligência artificial analisa os dados e gera recomendações <strong>em português claro</strong>, não técnico - perfeito para apresentar ao cliente final.</p>
+    </div>
+
+    <div class="differential">
+      <h4>2. White-Label Completo</h4>
+      <ul>
+        <li>Logo da sua agência no PDF</li>
+        <li>Nome da agência como título</li>
+        <li>Cores personalizáveis</li>
+        <li>Sem menção ao SiteCheck.ai</li>
+      </ul>
+    </div>
+
+    <div class="differential">
+      <h4>3. Rápido e Confiável</h4>
+      <ul>
+        <li>Análise em ~10 segundos</li>
+        <li>Cache inteligente (30 min)</li>
+        <li>Rate limiting para estabilidade</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Page 6: PDF Example -->
+  <div class="page">
+    <h2>Exemplo de Relatório</h2>
+
+    <div class="pdf-example">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <strong style="font-size: 18px;">[LOGO DA SUA AGÊNCIA]</strong><br><br>
+        <span style="font-size: 16px;">Diagnóstico Completo de Website</span><br>
+        <span style="color: #666;">www.cliente.com.br</span>
+      </div>
+
+      <hr style="border: 1px solid #e5e7eb; margin: 20px 0;">
+
+      <strong>VISÃO GERAL</strong><br><br>
+
+      Pontuação Geral: <strong style="color: #22c55e;">72</strong>/100
+      <span class="score-bar"><span class="score-bar-fill" style="width: 72%;"></span></span><br><br>
+
+      SEO &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 80
+      <span class="score-bar"><span class="score-bar-fill" style="width: 80%;"></span></span><br>
+      Acessibilidade &nbsp; 65
+      <span class="score-bar"><span class="score-bar-fill" style="width: 65%; background: #f59e0b;"></span></span><br>
+      Performance &nbsp;&nbsp;&nbsp; 45
+      <span class="score-bar"><span class="score-bar-fill" style="width: 45%; background: #ef4444;"></span></span><br>
+      Segurança &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;100
+      <span class="score-bar"><span class="score-bar-fill" style="width: 100%;"></span></span><br>
+      Mobile &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 70
+      <span class="score-bar"><span class="score-bar-fill" style="width: 70%;"></span></span><br><br>
+
+      <hr style="border: 1px solid #e5e7eb; margin: 20px 0;">
+
+      <strong>ANÁLISE DETALHADA POR IA</strong><br><br>
+      <em>"O site apresenta boa estrutura de SEO, mas precisa melhorar o tempo de carregamento. Recomendo otimizar imagens e implementar lazy loading..."</em>
+    </div>
+  </div>
+
+  <!-- Page 7: Use Cases -->
+  <div class="page">
+    <h2>Casos de Uso</h2>
+
+    <div class="use-case">
+      <h4>Para Prospecção</h4>
+      <blockquote>
+        "Olá, fiz uma análise gratuita do seu site e encontrei alguns pontos de melhoria. Posso te mostrar?"
+      </blockquote>
+    </div>
+
+    <div class="use-case">
+      <h4>Para Clientes Ativos</h4>
+      <blockquote>
+        "Aqui está o relatório mensal do seu site. A pontuação subiu de 65 para 78 após nossas otimizações."
+      </blockquote>
+    </div>
+
+    <div class="use-case">
+      <h4>Para Propostas Comerciais</h4>
+      <blockquote>
+        "Baseado nesta análise, recomendamos os seguintes serviços: [lista de serviços com preços]"
+      </blockquote>
+    </div>
+  </div>
+
+  <!-- Page 8: Features -->
+  <div class="page">
+    <h2>Recursos Implementados</h2>
+
+    <ul class="checklist">
+      <li>Análise completa de 8 categorias</li>
+      <li>Geração de PDF profissional</li>
+      <li>Análise com IA em português</li>
+      <li>White-label (logo, nome, cores)</li>
+      <li>Cache de 30 minutos</li>
+      <li>Rate limiting (10 req/min)</li>
+      <li>Barras de score visuais</li>
+      <li>Interface responsiva</li>
+    </ul>
+
+    <h3>Próximos Passos (Roadmap)</h3>
+
+    <ul class="checklist">
+      <li class="pending">Histórico de análises por usuário</li>
+      <li class="pending">Comparação antes/depois</li>
+      <li class="pending">Agendamento de análises automáticas</li>
+      <li class="pending">Dashboard com métricas</li>
+      <li class="pending">Planos: Free, Pro, Agency</li>
+      <li class="pending">API para integrações</li>
+    </ul>
+  </div>
+
+  <!-- Page 9: Tech Stack -->
+  <div class="page">
+    <h2>Stack Técnica</h2>
+
+    <table>
+      <tr>
+        <th>Componente</th>
+        <th>Tecnologia</th>
+      </tr>
+      <tr>
+        <td>Backend</td>
+        <td>Node.js + TypeScript + Express</td>
+      </tr>
+      <tr>
+        <td>Análise</td>
+        <td>Puppeteer + Chromium</td>
+      </tr>
+      <tr>
+        <td>IA</td>
+        <td>OpenAI GPT-4o-mini</td>
+      </tr>
+      <tr>
+        <td>PDF</td>
+        <td>PDFKit</td>
+      </tr>
+      <tr>
+        <td>Frontend</td>
+        <td>Next.js + TailwindCSS</td>
+      </tr>
+      <tr>
+        <td>Hospedagem</td>
+        <td>Render (API) + Vercel (Frontend)</td>
+      </tr>
+    </table>
+
+    <h3>Arquitetura</h3>
+    <div class="architecture">
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   Cliente   │────▶│   Vercel    │────▶│   Render    │
+│  (Browser)  │     │  (Frontend) │     │  (Backend)  │
+└─────────────┘     └─────────────┘     └─────────────┘
+                                              │
+                    ┌─────────────┬───────────┼───────────┐
+                    ▼             ▼           ▼           ▼
+              ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐
+              │ Puppeteer│ │  OpenAI  │ │  PDFKit  │ │  Cache   │
+              │(Análise) │ │   (IA)   │ │  (PDF)   │ │ (30 min) │
+              └──────────┘ └──────────┘ └──────────┘ └──────────┘</div>
+  </div>
+
+  <!-- Page 10: Contact -->
+  <div class="page contact">
+    <h2>Vamos Conversar?</h2>
+
+    <p style="font-size: 20px; margin-bottom: 40px;">
+      Pronto para revolucionar a forma como você apresenta análises de sites para seus clientes?
+    </p>
+
+    <div class="contact-info">
+      <strong>Website:</strong> <a href="https://sitecheck-ai.vercel.app">sitecheck-ai.vercel.app</a>
+    </div>
+
+    <div class="contact-info">
+      <strong>API:</strong> <a href="https://iachecksite.onrender.com">iachecksite.onrender.com</a>
+    </div>
+
+    <div style="margin-top: 60px; padding: 30px; background: #f0fdf4; border-radius: 12px;">
+      <p style="font-size: 18px; color: #166534; margin: 0;">
+        <strong>SiteCheck.ai</strong><br>
+        Diagnóstico Inteligente de Websites
+      </p>
+    </div>
+
+    <p style="margin-top: 60px; color: #9ca3af; font-size: 14px;">
+      Janeiro/2026
+    </p>
+  </div>
+
+</body>
+</html>

@@ -239,7 +239,21 @@ function addScoreOverview(doc, result, opts) {
         .moveTo(50, doc.y)
         .lineTo(doc.page.width - 50, doc.y)
         .stroke();
-    doc.moveDown(1.5);
+    doc.moveDown(1);
+}
+/**
+ * Checks if there's enough space on the current page
+ * If not, adds a new page
+ * @param doc The PDF document
+ * @param requiredSpace Minimum space required in pixels
+ */
+function ensurePageSpace(doc, requiredSpace = 150) {
+    const pageHeight = doc.page.height;
+    const bottomMargin = 60; // Space for footer
+    const availableSpace = pageHeight - bottomMargin - doc.y;
+    if (availableSpace < requiredSpace) {
+        doc.addPage();
+    }
 }
 /**
  * Adds a section header with score
@@ -248,6 +262,8 @@ function addScoreOverview(doc, result, opts) {
  * @param score Score value
  */
 function addSectionHeader(doc, title, score) {
+    // Ensure we have enough space for the header AND some content (at least 120px)
+    ensurePageSpace(doc, 120);
     const y = doc.y;
     // Title on the left
     doc.fontSize(16)
@@ -265,10 +281,11 @@ function addSectionHeader(doc, title, score) {
  * @param result The analysis result
  */
 function addBasicReports(doc, result) {
+    ensurePageSpace(doc, 180);
     doc.fontSize(18)
         .fillColor('#333333')
         .text('Relatórios Básicos', 50, doc.y)
-        .moveDown(1);
+        .moveDown(0.5);
     // SEO
     addSectionHeader(doc, 'SEO', result.seo.score);
     doc.fontSize(12)
@@ -331,7 +348,7 @@ function addBasicReports(doc, result) {
                 .moveDown(0.3);
         });
     }
-    doc.moveDown(2);
+    doc.moveDown(1);
 }
 /**
  * Adds the security report to the PDF
@@ -339,6 +356,7 @@ function addBasicReports(doc, result) {
  * @param result The analysis result
  */
 function addSecurityReport(doc, result) {
+    ensurePageSpace(doc, 150);
     addSectionHeader(doc, 'Segurança', result.security.score);
     doc.fontSize(12)
         .fillColor('#666666')
@@ -356,7 +374,7 @@ function addSecurityReport(doc, result) {
             .text(item.details || '')
             .moveDown(0.3);
     });
-    doc.moveDown(2);
+    doc.moveDown(1);
 }
 /**
  * Adds the mobile report to the PDF
@@ -364,6 +382,7 @@ function addSecurityReport(doc, result) {
  * @param result The analysis result
  */
 function addMobileReport(doc, result) {
+    ensurePageSpace(doc, 150);
     addSectionHeader(doc, 'Mobile e Responsividade', result.mobile.score);
     doc.fontSize(12)
         .fillColor('#666666')
@@ -381,7 +400,7 @@ function addMobileReport(doc, result) {
             .text(item.details || '')
             .moveDown(0.3);
     });
-    doc.moveDown(2);
+    doc.moveDown(1);
 }
 /**
  * Adds the analytics report to the PDF
@@ -389,6 +408,7 @@ function addMobileReport(doc, result) {
  * @param result The analysis result
  */
 function addAnalyticsReport(doc, result) {
+    ensurePageSpace(doc, 150);
     addSectionHeader(doc, 'Analytics e Rastreamento', result.analytics.score);
     doc.fontSize(12)
         .fillColor('#666666')
@@ -406,7 +426,7 @@ function addAnalyticsReport(doc, result) {
             .text(item.details || '')
             .moveDown(0.3);
     });
-    doc.moveDown(2);
+    doc.moveDown(1);
 }
 /**
  * Adds the technical SEO report to the PDF
@@ -414,6 +434,7 @@ function addAnalyticsReport(doc, result) {
  * @param result The analysis result
  */
 function addTechnicalSeoReport(doc, result) {
+    ensurePageSpace(doc, 150);
     addSectionHeader(doc, 'SEO Técnico', result.technicalSeo.score);
     doc.fontSize(12)
         .fillColor('#666666')
@@ -431,7 +452,7 @@ function addTechnicalSeoReport(doc, result) {
             .text(item.details || '')
             .moveDown(0.3);
     });
-    doc.moveDown(2);
+    doc.moveDown(1);
 }
 /**
  * Adds the HTTP headers report to the PDF
@@ -439,6 +460,7 @@ function addTechnicalSeoReport(doc, result) {
  * @param result The analysis result
  */
 function addHttpHeadersReport(doc, result) {
+    ensurePageSpace(doc, 150);
     addSectionHeader(doc, 'Headers HTTP e Cache', result.httpHeaders.score);
     doc.fontSize(12)
         .fillColor('#666666')
@@ -456,7 +478,7 @@ function addHttpHeadersReport(doc, result) {
             .text(item.details || '')
             .moveDown(0.3);
     });
-    doc.moveDown(2);
+    doc.moveDown(1);
 }
 /**
  * Adds the AI analysis to the PDF
@@ -522,7 +544,7 @@ function addAiAnalysis(doc, result) {
                 // Continue with next paragraph
             }
         });
-        doc.moveDown(2);
+        doc.moveDown(1);
     }
     catch (error) {
         console.error('Error adding AI analysis to PDF:', error);
