@@ -15,13 +15,25 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.generatePdfReport = generatePdfReport;
 const pdfkit_1 = __importDefault(require("pdfkit"));
 const stream_1 = require("stream");
+const node_fetch_1 = __importDefault(require("node-fetch"));
+// Default options
+const defaultOptions = {
+    agencyName: '',
+    agencyLogo: '',
+    agencyWebsite: '',
+    primaryColor: '#2563eb',
+    siteUrl: ''
+};
 /**
  * Generates a PDF report from the analysis result
  * @param result The analysis result
+ * @param options White-label customization options
  * @returns A readable stream of the PDF
  */
-function generatePdfReport(result) {
-    return __awaiter(this, void 0, void 0, function* () {
+function generatePdfReport(result_1) {
+    return __awaiter(this, arguments, void 0, function* (result, options = {}) {
+        // Merge with defaults
+        const opts = Object.assign(Object.assign({}, defaultOptions), options);
         // Validation: Check if result structure is valid
         if (!result) {
             throw new Error('Analysis result is required');
@@ -52,8 +64,8 @@ function generatePdfReport(result) {
         // Pipe the PDF into the pass-through stream
         doc.pipe(passThrough);
         // Add content to the PDF
-        addHeader(doc);
-        addSummary(doc, result);
+        yield addHeader(doc, opts);
+        addScoreOverview(doc, result, opts);
         addBasicReports(doc, result);
         addSecurityReport(doc, result);
         addMobileReport(doc, result);
@@ -61,66 +73,173 @@ function generatePdfReport(result) {
         addTechnicalSeoReport(doc, result);
         addHttpHeadersReport(doc, result);
         addAiAnalysis(doc, result);
-        addFooter(doc);
+        addFooter(doc, opts);
         // Finalize the PDF and end the stream
         doc.end();
         return passThrough;
     });
 }
 /**
- * Adds the header to the PDF
+ * Adds the header to the PDF with optional white-label branding
  * @param doc The PDF document
+ * @param opts White-label options
  */
-function addHeader(doc) {
-    doc.fontSize(24)
-        .fillColor('#333333')
-        .text('Relatório de Análise Técnica', { align: 'center' })
-        .moveDown(0.5);
-    doc.fontSize(12)
-        .fillColor('#666666')
-        .text(`Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, { align: 'center' })
-        .moveDown(2);
+function addHeader(doc, opts) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const startY = doc.y;
+        // Add agency logo if provided
+        if (opts.agencyLogo) {
+            try {
+                let logoBuffer;
+                if (opts.agencyLogo.startsWith('data:')) {
+                    // Base64 image
+                    const base64Data = opts.agencyLogo.split(',')[1];
+                    logoBuffer = Buffer.from(base64Data, 'base64');
+                }
+                else if (opts.agencyLogo.startsWith('http')) {
+                    // URL - fetch the image
+                    const response = yield (0, node_fetch_1.default)(opts.agencyLogo);
+                    const arrayBuffer = yield response.arrayBuffer();
+                    logoBuffer = Buffer.from(arrayBuffer);
+                }
+                else {
+                    logoBuffer = Buffer.from(opts.agencyLogo, 'base64');
+                }
+                // Add logo centered at top
+                doc.image(logoBuffer, (doc.page.width - 120) / 2, startY, {
+                    width: 120,
+                    align: 'center'
+                });
+                doc.y = startY + 70;
+            }
+            catch (error) {
+                console.warn('Could not load agency logo:', error);
+            }
+        }
+        // Agency name or default title
+        const title = opts.agencyName || 'Relatório de Análise Técnica';
+        doc.fontSize(24)
+            .fillColor(opts.primaryColor || '#333333')
+            .text(title, { align: 'center' })
+            .moveDown(0.3);
+        // Subtitle
+        doc.fontSize(14)
+            .fillColor('#666666')
+            .text('Diagnóstico Completo de Website', { align: 'center' })
+            .moveDown(0.5);
+        // Site URL if provided
+        if (opts.siteUrl) {
+            doc.fontSize(12)
+                .fillColor('#999999')
+                .text(opts.siteUrl, { align: 'center' })
+                .moveDown(0.3);
+        }
+        // Date
+        doc.fontSize(10)
+            .fillColor('#999999')
+            .text(`Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, { align: 'center' })
+            .moveDown(2);
+        // Separator line
+        doc.strokeColor('#e0e0e0')
+            .lineWidth(1)
+            .moveTo(50, doc.y)
+            .lineTo(doc.page.width - 50, doc.y)
+            .stroke();
+        doc.moveDown(1);
+    });
 }
 /**
- * Adds the summary to the PDF
+ * Draws a score bar (visual progress bar)
+ * @param doc The PDF document
+ * @param x X position
+ * @param y Y position
+ * @param width Total width
+ * @param height Bar height
+ * @param score Score 0-100
+ */
+function drawScoreBar(doc, x, y, width, height, score) {
+    // Background bar (gray)
+    doc.roundedRect(x, y, width, height, 3)
+        .fillColor('#e0e0e0')
+        .fill();
+    // Score bar (colored based on score)
+    const scoreWidth = (score / 100) * width;
+    if (scoreWidth > 0) {
+        doc.roundedRect(x, y, scoreWidth, height, 3)
+            .fillColor(getScoreColor(score))
+            .fill();
+    }
+}
+/**
+ * Adds the visual score overview with progress bars
  * @param doc The PDF document
  * @param result The analysis result
+ * @param opts White-label options
  */
-function addSummary(doc, result) {
-    doc.fontSize(18)
-        .fillColor('#333333')
-        .text('Resumo da Análise', { underline: true })
-        .moveDown(1);
-    // Create a table-like structure for scores
+function addScoreOverview(doc, result, opts) {
     const scores = [
-        { name: 'SEO', score: result.seo.score },
-        { name: 'Acessibilidade', score: result.accessibility.score },
-        { name: 'Performance', score: result.performance.score },
-        { name: 'Segurança', score: result.security.score },
-        { name: 'Mobile', score: result.mobile.score },
-        { name: 'Analytics', score: result.analytics.score },
-        { name: 'SEO Técnico', score: result.technicalSeo.score },
-        { name: 'Headers HTTP', score: result.httpHeaders.score }
+        { name: 'SEO', score: result.seo.score, icon: '🔍' },
+        { name: 'Acessibilidade', score: result.accessibility.score, icon: '♿' },
+        { name: 'Performance', score: result.performance.score, icon: '⚡' },
+        { name: 'Segurança', score: result.security.score, icon: '🔒' },
+        { name: 'Mobile', score: result.mobile.score, icon: '📱' },
+        { name: 'Analytics', score: result.analytics.score, icon: '📊' },
+        { name: 'SEO Técnico', score: result.technicalSeo.score, icon: '⚙️' },
+        { name: 'Headers HTTP', score: result.httpHeaders.score, icon: '🌐' }
     ];
     // Calculate average score
     const averageScore = Math.round(scores.reduce((sum, item) => sum + item.score, 0) / scores.length);
-    // Add average score
-    doc.fontSize(14)
-        .fillColor('#333333')
-        .text(`Pontuação Média: ${averageScore}/100`, { continued: true })
-        .fillColor(getScoreColor(averageScore))
-        .text(` (${getScoreLabel(averageScore)})`)
+    // Section title
+    doc.fontSize(18)
+        .fillColor(opts.primaryColor || '#333333')
+        .text('Visão Geral', { underline: false })
         .moveDown(1);
-    // Add individual scores
-    scores.forEach(item => {
-        doc.fontSize(12)
+    // Average score box
+    const boxX = 50;
+    const boxWidth = doc.page.width - 100;
+    const boxY = doc.y;
+    // Draw average score prominently
+    doc.roundedRect(boxX, boxY, boxWidth, 60, 8)
+        .fillColor('#f8f9fa')
+        .fill();
+    doc.fontSize(14)
+        .fillColor('#666666')
+        .text('Pontuação Geral', boxX + 20, boxY + 10);
+    doc.fontSize(32)
+        .fillColor(getScoreColor(averageScore))
+        .text(`${averageScore}`, boxX + 20, boxY + 25, { continued: true })
+        .fontSize(16)
+        .fillColor('#999999')
+        .text('/100');
+    // Score bar for average
+    drawScoreBar(doc, boxX + 150, boxY + 35, boxWidth - 180, 15, averageScore);
+    doc.y = boxY + 75;
+    // Individual scores with bars
+    const barWidth = 200;
+    const labelWidth = 120;
+    const startX = 50;
+    scores.forEach((item, index) => {
+        const y = doc.y;
+        // Label
+        doc.fontSize(11)
             .fillColor('#333333')
-            .text(`${item.name}: `, { continued: true })
+            .text(`${item.name}`, startX, y, { width: labelWidth });
+        // Score bar
+        drawScoreBar(doc, startX + labelWidth, y + 2, barWidth, 12, item.score);
+        // Score value
+        doc.fontSize(11)
             .fillColor(getScoreColor(item.score))
-            .text(`${item.score}/100 (${getScoreLabel(item.score)})`)
-            .moveDown(0.5);
+            .text(`${item.score}`, startX + labelWidth + barWidth + 10, y);
+        doc.y = y + 22;
     });
-    doc.moveDown(2);
+    doc.moveDown(1);
+    // Separator line
+    doc.strokeColor('#e0e0e0')
+        .lineWidth(1)
+        .moveTo(50, doc.y)
+        .lineTo(doc.page.width - 50, doc.y)
+        .stroke();
+    doc.moveDown(1.5);
 }
 /**
  * Adds the basic reports to the PDF
@@ -421,26 +540,31 @@ function addAiAnalysis(doc, result) {
     }
 }
 /**
- * Adds the footer to the PDF
+ * Adds the footer to the PDF with white-label support
  * @param doc The PDF document
+ * @param opts White-label options
  */
-function addFooter(doc) {
+function addFooter(doc, opts) {
     try {
         // Get the current page range
         const range = doc.bufferedPageRange();
         const totalPages = range.count;
+        // Determine footer text
+        const footerText = opts.agencyName
+            ? `© ${new Date().getFullYear()} ${opts.agencyName}${opts.agencyWebsite ? ' • ' + opts.agencyWebsite : ''}`
+            : `Relatório gerado automaticamente`;
         // Add footer to each page in the range
         for (let i = 0; i < totalPages; i++) {
             const pageNumber = range.start + i;
             doc.switchToPage(pageNumber);
             // Add page number
-            doc.fontSize(10)
+            doc.fontSize(9)
                 .fillColor('#999999')
-                .text(`Página ${pageNumber + 1} de ${totalPages}`, 0, doc.page.height - 50, { align: 'center' });
-            // Add copyright
-            doc.fontSize(10)
-                .fillColor('#999999')
-                .text(`© ${new Date().getFullYear()} Site Analyzer - Todos os direitos reservados`, 0, doc.page.height - 30, { align: 'center' });
+                .text(`Página ${pageNumber + 1} de ${totalPages}`, 0, doc.page.height - 45, { align: 'center' });
+            // Add footer text (agency name or generic)
+            doc.fontSize(8)
+                .fillColor('#bbbbbb')
+                .text(footerText, 0, doc.page.height - 30, { align: 'center' });
         }
     }
     catch (error) {

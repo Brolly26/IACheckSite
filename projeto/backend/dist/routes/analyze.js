@@ -149,12 +149,27 @@ router.post('/analyze', rateLimiter, (req, res) => __awaiter(void 0, void 0, voi
 router.post('/generate-pdf', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         console.log('Generating PDF report...');
-        const analysisResult = req.body;
+        const { analysis, whiteLabel } = req.body;
+        // Support both old format (direct analysis) and new format (with whiteLabel)
+        const analysisResult = analysis || req.body;
         if (!analysisResult || !analysisResult.seo) {
             return res.status(400).json({ error: 'Invalid analysis result' });
         }
-        // Generate the PDF
-        const pdfStream = yield (0, pdfGenerator_1.generatePdfReport)(analysisResult);
+        // Build PDF options from white-label settings
+        const pdfOptions = {
+            agencyName: (whiteLabel === null || whiteLabel === void 0 ? void 0 : whiteLabel.agencyName) || '',
+            agencyLogo: (whiteLabel === null || whiteLabel === void 0 ? void 0 : whiteLabel.agencyLogo) || '',
+            agencyWebsite: (whiteLabel === null || whiteLabel === void 0 ? void 0 : whiteLabel.agencyWebsite) || '',
+            primaryColor: (whiteLabel === null || whiteLabel === void 0 ? void 0 : whiteLabel.primaryColor) || '#2563eb',
+            siteUrl: (whiteLabel === null || whiteLabel === void 0 ? void 0 : whiteLabel.siteUrl) || ''
+        };
+        console.log('PDF options:', {
+            hasLogo: !!pdfOptions.agencyLogo,
+            agencyName: pdfOptions.agencyName,
+            siteUrl: pdfOptions.siteUrl
+        });
+        // Generate the PDF with options
+        const pdfStream = yield (0, pdfGenerator_1.generatePdfReport)(analysisResult, pdfOptions);
         // Set headers
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', 'attachment; filename=site-analysis-report.pdf');

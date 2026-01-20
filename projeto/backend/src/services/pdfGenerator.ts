@@ -1,13 +1,42 @@
 import PDFDocument from 'pdfkit';
 import { AnalysisResult } from '../utils/types';
 import { Readable, PassThrough } from 'stream';
+import fetch from 'node-fetch';
+
+/**
+ * White-label options for PDF customization
+ */
+export interface PdfOptions {
+  // Agency branding
+  agencyName?: string;
+  agencyLogo?: string; // URL or base64 of logo image
+  agencyWebsite?: string;
+
+  // Colors (hex)
+  primaryColor?: string;
+
+  // URL being analyzed
+  siteUrl?: string;
+}
+
+// Default options
+const defaultOptions: PdfOptions = {
+  agencyName: '',
+  agencyLogo: '',
+  agencyWebsite: '',
+  primaryColor: '#2563eb',
+  siteUrl: ''
+};
 
 /**
  * Generates a PDF report from the analysis result
  * @param result The analysis result
+ * @param options White-label customization options
  * @returns A readable stream of the PDF
  */
-export async function generatePdfReport(result: AnalysisResult): Promise<Readable> {
+export async function generatePdfReport(result: AnalysisResult, options: PdfOptions = {}): Promise<Readable> {
+  // Merge with defaults
+  const opts = { ...defaultOptions, ...options };
   // Validation: Check if result structure is valid
   if (!result) {
     throw new Error('Analysis result is required');
@@ -46,8 +75,8 @@ export async function generatePdfReport(result: AnalysisResult): Promise<Readabl
   doc.pipe(passThrough);
   
   // Add content to the PDF
-  addHeader(doc);
-  addSummary(doc, result);
+  await addHeader(doc, opts);
+  addScoreOverview(doc, result, opts);
   addBasicReports(doc, result);
   addSecurityReport(doc, result);
   addMobileReport(doc, result);
@@ -55,7 +84,7 @@ export async function generatePdfReport(result: AnalysisResult): Promise<Readabl
   addTechnicalSeoReport(doc, result);
   addHttpHeadersReport(doc, result);
   addAiAnalysis(doc, result);
-  addFooter(doc);
+  addFooter(doc, opts);
   
   // Finalize the PDF and end the stream
   doc.end();
@@ -64,68 +93,193 @@ export async function generatePdfReport(result: AnalysisResult): Promise<Readabl
 }
 
 /**
- * Adds the header to the PDF
+ * Adds the header to the PDF with optional white-label branding
  * @param doc The PDF document
+ * @param opts White-label options
  */
-function addHeader(doc: PDFKit.PDFDocument): void {
+async function addHeader(doc: PDFKit.PDFDocument, opts: PdfOptions): Promise<void> {
+  const startY = doc.y;
+
+  // Add agency logo if provided
+  if (opts.agencyLogo) {
+    try {
+      let logoBuffer: Buffer;
+
+      if (opts.agencyLogo.startsWith('data:')) {
+        // Base64 image
+        const base64Data = opts.agencyLogo.split(',')[1];
+        logoBuffer = Buffer.from(base64Data, 'base64');
+      } else if (opts.agencyLogo.startsWith('http')) {
+        // URL - fetch the image
+        const response = await fetch(opts.agencyLogo);
+        const arrayBuffer = await response.arrayBuffer();
+        logoBuffer = Buffer.from(arrayBuffer);
+      } else {
+        logoBuffer = Buffer.from(opts.agencyLogo, 'base64');
+      }
+
+      // Add logo centered at top
+      doc.image(logoBuffer, (doc.page.width - 120) / 2, startY, {
+        width: 120,
+        align: 'center'
+      });
+      doc.y = startY + 70;
+    } catch (error) {
+      console.warn('Could not load agency logo:', error);
+    }
+  }
+
+  // Agency name or default title
+  const title = opts.agencyName || 'Relatório de Análise Técnica';
+
   doc.fontSize(24)
-     .fillColor('#333333')
-     .text('Relatório de Análise Técnica', { align: 'center' })
-     .moveDown(0.5);
-  
-  doc.fontSize(12)
+     .fillColor(opts.primaryColor || '#333333')
+     .text(title, { align: 'center' })
+     .moveDown(0.3);
+
+  // Subtitle
+  doc.fontSize(14)
      .fillColor('#666666')
+     .text('Diagnóstico Completo de Website', { align: 'center' })
+     .moveDown(0.5);
+
+  // Site URL if provided
+  if (opts.siteUrl) {
+    doc.fontSize(12)
+       .fillColor('#999999')
+       .text(opts.siteUrl, { align: 'center' })
+       .moveDown(0.3);
+  }
+
+  // Date
+  doc.fontSize(10)
+     .fillColor('#999999')
      .text(`Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, { align: 'center' })
      .moveDown(2);
+
+  // Separator line
+  doc.strokeColor('#e0e0e0')
+     .lineWidth(1)
+     .moveTo(50, doc.y)
+     .lineTo(doc.page.width - 50, doc.y)
+     .stroke();
+
+  doc.moveDown(1);
 }
 
 /**
- * Adds the summary to the PDF
+ * Draws a score bar (visual progress bar)
+ * @param doc The PDF document
+ * @param x X position
+ * @param y Y position
+ * @param width Total width
+ * @param height Bar height
+ * @param score Score 0-100
+ */
+function drawScoreBar(doc: PDFKit.PDFDocument, x: number, y: number, width: number, height: number, score: number): void {
+  // Background bar (gray)
+  doc.roundedRect(x, y, width, height, 3)
+     .fillColor('#e0e0e0')
+     .fill();
+
+  // Score bar (colored based on score)
+  const scoreWidth = (score / 100) * width;
+  if (scoreWidth > 0) {
+    doc.roundedRect(x, y, scoreWidth, height, 3)
+       .fillColor(getScoreColor(score))
+       .fill();
+  }
+}
+
+/**
+ * Adds the visual score overview with progress bars
  * @param doc The PDF document
  * @param result The analysis result
+ * @param opts White-label options
  */
-function addSummary(doc: PDFKit.PDFDocument, result: AnalysisResult): void {
-  doc.fontSize(18)
-     .fillColor('#333333')
-     .text('Resumo da Análise', { underline: true })
-     .moveDown(1);
-  
-  // Create a table-like structure for scores
+function addScoreOverview(doc: PDFKit.PDFDocument, result: AnalysisResult, opts: PdfOptions): void {
   const scores = [
-    { name: 'SEO', score: result.seo.score },
-    { name: 'Acessibilidade', score: result.accessibility.score },
-    { name: 'Performance', score: result.performance.score },
-    { name: 'Segurança', score: result.security.score },
-    { name: 'Mobile', score: result.mobile.score },
-    { name: 'Analytics', score: result.analytics.score },
-    { name: 'SEO Técnico', score: result.technicalSeo.score },
-    { name: 'Headers HTTP', score: result.httpHeaders.score }
+    { name: 'SEO', score: result.seo.score, icon: '🔍' },
+    { name: 'Acessibilidade', score: result.accessibility.score, icon: '♿' },
+    { name: 'Performance', score: result.performance.score, icon: '⚡' },
+    { name: 'Segurança', score: result.security.score, icon: '🔒' },
+    { name: 'Mobile', score: result.mobile.score, icon: '📱' },
+    { name: 'Analytics', score: result.analytics.score, icon: '📊' },
+    { name: 'SEO Técnico', score: result.technicalSeo.score, icon: '⚙️' },
+    { name: 'Headers HTTP', score: result.httpHeaders.score, icon: '🌐' }
   ];
-  
+
   // Calculate average score
   const averageScore = Math.round(
     scores.reduce((sum, item) => sum + item.score, 0) / scores.length
   );
-  
-  // Add average score
-  doc.fontSize(14)
-     .fillColor('#333333')
-     .text(`Pontuação Média: ${averageScore}/100`, { continued: true })
-     .fillColor(getScoreColor(averageScore))
-     .text(` (${getScoreLabel(averageScore)})`)
+
+  // Section title
+  doc.fontSize(18)
+     .fillColor(opts.primaryColor || '#333333')
+     .text('Visão Geral', { underline: false })
      .moveDown(1);
-  
-  // Add individual scores
-  scores.forEach(item => {
-    doc.fontSize(12)
+
+  // Average score box
+  const boxX = 50;
+  const boxWidth = doc.page.width - 100;
+  const boxY = doc.y;
+
+  // Draw average score prominently
+  doc.roundedRect(boxX, boxY, boxWidth, 60, 8)
+     .fillColor('#f8f9fa')
+     .fill();
+
+  doc.fontSize(14)
+     .fillColor('#666666')
+     .text('Pontuação Geral', boxX + 20, boxY + 10);
+
+  doc.fontSize(32)
+     .fillColor(getScoreColor(averageScore))
+     .text(`${averageScore}`, boxX + 20, boxY + 25, { continued: true })
+     .fontSize(16)
+     .fillColor('#999999')
+     .text('/100');
+
+  // Score bar for average
+  drawScoreBar(doc, boxX + 150, boxY + 35, boxWidth - 180, 15, averageScore);
+
+  doc.y = boxY + 75;
+
+  // Individual scores with bars
+  const barWidth = 200;
+  const labelWidth = 120;
+  const startX = 50;
+
+  scores.forEach((item, index) => {
+    const y = doc.y;
+
+    // Label
+    doc.fontSize(11)
        .fillColor('#333333')
-       .text(`${item.name}: `, { continued: true })
+       .text(`${item.name}`, startX, y, { width: labelWidth });
+
+    // Score bar
+    drawScoreBar(doc, startX + labelWidth, y + 2, barWidth, 12, item.score);
+
+    // Score value
+    doc.fontSize(11)
        .fillColor(getScoreColor(item.score))
-       .text(`${item.score}/100 (${getScoreLabel(item.score)})`)
-       .moveDown(0.5);
+       .text(`${item.score}`, startX + labelWidth + barWidth + 10, y);
+
+    doc.y = y + 22;
   });
-  
-  doc.moveDown(2);
+
+  doc.moveDown(1);
+
+  // Separator line
+  doc.strokeColor('#e0e0e0')
+     .lineWidth(1)
+     .moveTo(50, doc.y)
+     .lineTo(doc.page.width - 50, doc.y)
+     .stroke();
+
+  doc.moveDown(1.5);
 }
 
 /**
@@ -465,35 +619,41 @@ function addAiAnalysis(doc: PDFKit.PDFDocument, result: AnalysisResult): void {
 }
 
 /**
- * Adds the footer to the PDF
+ * Adds the footer to the PDF with white-label support
  * @param doc The PDF document
+ * @param opts White-label options
  */
-function addFooter(doc: PDFKit.PDFDocument): void {
+function addFooter(doc: PDFKit.PDFDocument, opts: PdfOptions): void {
   try {
     // Get the current page range
     const range = doc.bufferedPageRange();
     const totalPages = range.count;
-    
+
+    // Determine footer text
+    const footerText = opts.agencyName
+      ? `© ${new Date().getFullYear()} ${opts.agencyName}${opts.agencyWebsite ? ' • ' + opts.agencyWebsite : ''}`
+      : `Relatório gerado automaticamente`;
+
     // Add footer to each page in the range
     for (let i = 0; i < totalPages; i++) {
       const pageNumber = range.start + i;
       doc.switchToPage(pageNumber);
-      
+
       // Add page number
-      doc.fontSize(10)
+      doc.fontSize(9)
          .fillColor('#999999')
          .text(
            `Página ${pageNumber + 1} de ${totalPages}`,
            0,
-           doc.page.height - 50,
+           doc.page.height - 45,
            { align: 'center' }
          );
-      
-      // Add copyright
-      doc.fontSize(10)
-         .fillColor('#999999')
+
+      // Add footer text (agency name or generic)
+      doc.fontSize(8)
+         .fillColor('#bbbbbb')
          .text(
-           `© ${new Date().getFullYear()} Site Analyzer - Todos os direitos reservados`,
+           footerText,
            0,
            doc.page.height - 30,
            { align: 'center' }
