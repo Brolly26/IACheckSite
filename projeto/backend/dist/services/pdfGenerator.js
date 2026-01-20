@@ -487,17 +487,18 @@ function addHttpHeadersReport(doc, result) {
  */
 function addAiAnalysis(doc, result) {
     try {
-        doc.addPage();
+        // Ensure space for AI analysis section header
+        ensurePageSpace(doc, 200);
         doc.fontSize(18)
             .fillColor('#333333')
             .text('Análise Detalhada por IA', 50, doc.y)
-            .moveDown(1);
+            .moveDown(0.5);
         // Check if AI analysis is available
         if (!result.aiAnalysis || result.aiAnalysis.includes('Ocorreu um erro')) {
             doc.fontSize(12)
                 .fillColor('#666666')
                 .text('A análise detalhada por IA não está disponível neste momento.', 50)
-                .moveDown(1);
+                .moveDown(0.5);
             return;
         }
         // Split the AI analysis into paragraphs
@@ -505,38 +506,43 @@ function addAiAnalysis(doc, result) {
         // Process each paragraph
         paragraphs.forEach(paragraph => {
             try {
+                // Check page space before adding content
+                ensurePageSpace(doc, 50);
                 // Check if it's a heading
                 if (paragraph.startsWith('# ')) {
+                    ensurePageSpace(doc, 80);
                     doc.fontSize(18)
                         .fillColor('#333333')
                         .text(paragraph.substring(2))
-                        .moveDown(1);
+                        .moveDown(0.5);
                 }
                 else if (paragraph.startsWith('## ')) {
+                    ensurePageSpace(doc, 70);
                     doc.fontSize(16)
                         .fillColor('#333333')
                         .text(paragraph.substring(3))
-                        .moveDown(1);
+                        .moveDown(0.5);
                 }
                 else if (paragraph.startsWith('### ')) {
+                    ensurePageSpace(doc, 60);
                     doc.fontSize(14)
                         .fillColor('#333333')
                         .text(paragraph.substring(4))
-                        .moveDown(1);
+                        .moveDown(0.5);
                 }
                 else if (paragraph.startsWith('- ')) {
                     // It's a bullet point
                     doc.fontSize(12)
                         .fillColor('#666666')
                         .text(`• ${paragraph.substring(2)}`)
-                        .moveDown(0.5);
+                        .moveDown(0.3);
                 }
                 else if (paragraph.trim().length > 0) {
                     // It's a regular paragraph
                     doc.fontSize(12)
                         .fillColor('#666666')
                         .text(paragraph)
-                        .moveDown(1);
+                        .moveDown(0.5);
                 }
             }
             catch (error) {
@@ -544,7 +550,6 @@ function addAiAnalysis(doc, result) {
                 // Continue with next paragraph
             }
         });
-        doc.moveDown(1);
     }
     catch (error) {
         console.error('Error adding AI analysis to PDF:', error);
@@ -569,14 +574,18 @@ function addFooter(doc, opts) {
         for (let i = 0; i < totalPages; i++) {
             const pageNumber = range.start + i;
             doc.switchToPage(pageNumber);
-            // Add page number
+            // Save current position
+            const savedY = doc.y;
+            // Add page number - use explicit width to prevent page creation
             doc.fontSize(9)
                 .fillColor('#999999')
-                .text(`Página ${pageNumber + 1} de ${totalPages}`, 0, doc.page.height - 45, { align: 'center' });
+                .text(`Página ${pageNumber + 1} de ${totalPages}`, 50, doc.page.height - 45, { align: 'center', width: doc.page.width - 100, lineBreak: false });
             // Add footer text (agency name or generic)
             doc.fontSize(8)
                 .fillColor('#bbbbbb')
-                .text(footerText, 0, doc.page.height - 30, { align: 'center' });
+                .text(footerText, 50, doc.page.height - 30, { align: 'center', width: doc.page.width - 100, lineBreak: false });
+            // Restore position
+            doc.y = savedY;
         }
     }
     catch (error) {

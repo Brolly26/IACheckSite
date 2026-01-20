@@ -577,64 +577,69 @@ function addHttpHeadersReport(doc: PDFKit.PDFDocument, result: AnalysisResult): 
  */
 function addAiAnalysis(doc: PDFKit.PDFDocument, result: AnalysisResult): void {
   try {
-    doc.addPage();
+    // Ensure space for AI analysis section header
+    ensurePageSpace(doc, 200);
 
     doc.fontSize(18)
        .fillColor('#333333')
        .text('Análise Detalhada por IA', 50, doc.y)
-       .moveDown(1);
+       .moveDown(0.5);
 
     // Check if AI analysis is available
     if (!result.aiAnalysis || result.aiAnalysis.includes('Ocorreu um erro')) {
       doc.fontSize(12)
          .fillColor('#666666')
          .text('A análise detalhada por IA não está disponível neste momento.', 50)
-         .moveDown(1);
+         .moveDown(0.5);
       return;
     }
-    
+
     // Split the AI analysis into paragraphs
     const paragraphs = result.aiAnalysis.split('\n');
-    
+
     // Process each paragraph
     paragraphs.forEach(paragraph => {
       try {
+        // Check page space before adding content
+        ensurePageSpace(doc, 50);
+
         // Check if it's a heading
         if (paragraph.startsWith('# ')) {
+          ensurePageSpace(doc, 80);
           doc.fontSize(18)
              .fillColor('#333333')
              .text(paragraph.substring(2))
-             .moveDown(1);
+             .moveDown(0.5);
         } else if (paragraph.startsWith('## ')) {
+          ensurePageSpace(doc, 70);
           doc.fontSize(16)
              .fillColor('#333333')
              .text(paragraph.substring(3))
-             .moveDown(1);
+             .moveDown(0.5);
         } else if (paragraph.startsWith('### ')) {
+          ensurePageSpace(doc, 60);
           doc.fontSize(14)
              .fillColor('#333333')
              .text(paragraph.substring(4))
-             .moveDown(1);
+             .moveDown(0.5);
         } else if (paragraph.startsWith('- ')) {
           // It's a bullet point
           doc.fontSize(12)
              .fillColor('#666666')
              .text(`• ${paragraph.substring(2)}`)
-             .moveDown(0.5);
+             .moveDown(0.3);
         } else if (paragraph.trim().length > 0) {
           // It's a regular paragraph
           doc.fontSize(12)
              .fillColor('#666666')
              .text(paragraph)
-             .moveDown(1);
+             .moveDown(0.5);
         }
       } catch (error) {
         console.error('Error processing paragraph in AI analysis:', error);
         // Continue with next paragraph
       }
     });
-
-    doc.moveDown(1);
   } catch (error) {
     console.error('Error adding AI analysis to PDF:', error);
     // Continue without AI analysis if there's an error
@@ -662,14 +667,17 @@ function addFooter(doc: PDFKit.PDFDocument, opts: PdfOptions): void {
       const pageNumber = range.start + i;
       doc.switchToPage(pageNumber);
 
-      // Add page number
+      // Save current position
+      const savedY = doc.y;
+
+      // Add page number - use explicit width to prevent page creation
       doc.fontSize(9)
          .fillColor('#999999')
          .text(
            `Página ${pageNumber + 1} de ${totalPages}`,
-           0,
+           50,
            doc.page.height - 45,
-           { align: 'center' }
+           { align: 'center', width: doc.page.width - 100, lineBreak: false }
          );
 
       // Add footer text (agency name or generic)
@@ -677,10 +685,13 @@ function addFooter(doc: PDFKit.PDFDocument, opts: PdfOptions): void {
          .fillColor('#bbbbbb')
          .text(
            footerText,
-           0,
+           50,
            doc.page.height - 30,
-           { align: 'center' }
+           { align: 'center', width: doc.page.width - 100, lineBreak: false }
          );
+
+      // Restore position
+      doc.y = savedY;
     }
   } catch (error) {
     console.error('Error adding footer to PDF:', error);
