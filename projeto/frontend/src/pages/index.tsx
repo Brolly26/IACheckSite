@@ -1,10 +1,18 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import axios from 'axios'
-import { FaSearch, FaSpinner, FaShieldAlt, FaMobileAlt, FaChartLine, FaSearch as FaSearchIcon, FaServer } from 'react-icons/fa'
+import { FaSearch, FaSpinner, FaShieldAlt, FaMobileAlt, FaChartLine, FaSearch as FaSearchIcon, FaServer, FaCog, FaImage, FaTimes } from 'react-icons/fa'
 import ReportCard from '@/components/ReportCard'
 import DetailedReportCard from '@/components/DetailedReportCard'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
+
+// White-label settings interface
+interface WhiteLabelSettings {
+  agencyName: string;
+  agencyLogo: string;
+  agencyWebsite: string;
+  primaryColor: string;
+}
 
 interface CheckItem {
   name: string;
@@ -68,34 +76,92 @@ export default function Home() {
   const [reportData, setReportData] = useState<ReportData | null>(null)
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false)
   const [pdfError, setPdfError] = useState('')
-  
+
+  // White-label state
+  const [showWhiteLabel, setShowWhiteLabel] = useState(false)
+  const [whiteLabel, setWhiteLabel] = useState<WhiteLabelSettings>({
+    agencyName: '',
+    agencyLogo: '',
+    agencyWebsite: '',
+    primaryColor: '#2563eb'
+  })
+  const logoInputRef = useRef<HTMLInputElement>(null)
+
+  // Handle logo file upload
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert('Por favor, selecione uma imagem válida.')
+        return
+      }
+      // Validate file size (max 500KB)
+      if (file.size > 500 * 1024) {
+        alert('A imagem deve ter no máximo 500KB.')
+        return
+      }
+
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setWhiteLabel(prev => ({
+          ...prev,
+          agencyLogo: reader.result as string
+        }))
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  // Remove logo
+  const handleRemoveLogo = () => {
+    setWhiteLabel(prev => ({ ...prev, agencyLogo: '' }))
+    if (logoInputRef.current) {
+      logoInputRef.current.value = ''
+    }
+  }
+
   // Function to handle PDF download
   const handleDownloadPdf = async () => {
     if (!reportData) return;
-    
+
     try {
       setIsDownloadingPdf(true);
       setPdfError('');
-      
+
+      // Build request body with white-label settings
+      const requestBody = {
+        analysis: reportData,
+        whiteLabel: {
+          ...whiteLabel,
+          siteUrl: url
+        }
+      };
+
       // Make a POST request to the backend to generate the PDF
-      const response = await axios.post('https://iachecksite.onrender.com/api/generate-pdf', reportData, {
+      const response = await axios.post('https://iachecksite.onrender.com/api/generate-pdf', requestBody, {
         responseType: 'blob' // Important for handling binary data
       });
-      
+
       // Create a blob URL for the PDF
       const blob = new Blob([response.data], { type: 'application/pdf' });
-      const url = window.URL.createObjectURL(blob);
-      
+      const downloadUrl = window.URL.createObjectURL(blob);
+
+      // Generate filename based on agency name or site
+      const filename = whiteLabel.agencyName
+        ? `relatorio-${whiteLabel.agencyName.toLowerCase().replace(/\s+/g, '-')}.pdf`
+        : 'site-analysis-report.pdf';
+
       // Create a link element and trigger a download
       const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', 'site-analysis-report.pdf');
+      link.href = downloadUrl;
+      link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
-      
+
       // Clean up
       document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      window.URL.revokeObjectURL(downloadUrl);
     } catch (err) {
       console.error('Error downloading PDF:', err);
       setPdfError('Ocorreu um erro ao gerar o PDF. Por favor, tente novamente.');
@@ -284,15 +350,134 @@ export default function Home() {
                   ))}
                 </div>
                 
-                <div className="mt-8 text-center">
-                  <button 
-                    className="btn-secondary"
+                {/* White-label configuration */}
+                <div className="mt-8 border-t border-gray-200 pt-6">
+                  <button
+                    onClick={() => setShowWhiteLabel(!showWhiteLabel)}
+                    className="flex items-center gap-2 text-gray-600 hover:text-primary transition-colors mx-auto"
+                  >
+                    <FaCog className={`transition-transform ${showWhiteLabel ? 'rotate-90' : ''}`} />
+                    <span>Personalizar PDF (White-Label)</span>
+                  </button>
+
+                  {showWhiteLabel && (
+                    <div className="mt-4 p-4 bg-gray-50 rounded-lg text-left">
+                      <h4 className="font-semibold text-gray-700 mb-4">Configurações do PDF</h4>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Agency Name */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Nome da Agência
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Minha Agência Digital"
+                            className="input-field w-full"
+                            value={whiteLabel.agencyName}
+                            onChange={(e) => setWhiteLabel(prev => ({ ...prev, agencyName: e.target.value }))}
+                          />
+                        </div>
+
+                        {/* Agency Website */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Website da Agência
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="www.minhaagencia.com.br"
+                            className="input-field w-full"
+                            value={whiteLabel.agencyWebsite}
+                            onChange={(e) => setWhiteLabel(prev => ({ ...prev, agencyWebsite: e.target.value }))}
+                          />
+                        </div>
+
+                        {/* Primary Color */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Cor Principal
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="color"
+                              className="w-10 h-10 rounded cursor-pointer border border-gray-300"
+                              value={whiteLabel.primaryColor}
+                              onChange={(e) => setWhiteLabel(prev => ({ ...prev, primaryColor: e.target.value }))}
+                            />
+                            <input
+                              type="text"
+                              className="input-field flex-1"
+                              value={whiteLabel.primaryColor}
+                              onChange={(e) => setWhiteLabel(prev => ({ ...prev, primaryColor: e.target.value }))}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Logo Upload */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Logo da Agência
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              ref={logoInputRef}
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={handleLogoUpload}
+                            />
+                            {whiteLabel.agencyLogo ? (
+                              <div className="flex items-center gap-2 p-2 bg-white rounded border border-gray-200">
+                                <img
+                                  src={whiteLabel.agencyLogo}
+                                  alt="Logo preview"
+                                  className="h-8 w-auto object-contain"
+                                />
+                                <button
+                                  onClick={handleRemoveLogo}
+                                  className="text-red-500 hover:text-red-700"
+                                  title="Remover logo"
+                                >
+                                  <FaTimes />
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => logoInputRef.current?.click()}
+                                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                              >
+                                <FaImage className="text-gray-500" />
+                                <span>Escolher logo</span>
+                              </button>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">PNG ou JPG, máximo 500KB</p>
+                        </div>
+                      </div>
+
+                      {/* Preview indicator */}
+                      {(whiteLabel.agencyName || whiteLabel.agencyLogo) && (
+                        <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                          <p className="text-sm text-green-700">
+                            ✓ O PDF será gerado com a marca "{whiteLabel.agencyName || 'sua agência'}"
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Download button */}
+                <div className="mt-6 text-center">
+                  <button
+                    className="btn-secondary inline-flex items-center gap-2"
                     onClick={() => handleDownloadPdf()}
                     disabled={isDownloadingPdf}
                   >
                     {isDownloadingPdf ? (
                       <>
-                        <FaSpinner className="animate-spin mr-2" />
+                        <FaSpinner className="animate-spin" />
                         Gerando PDF...
                       </>
                     ) : (
