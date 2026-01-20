@@ -283,6 +283,28 @@ function addScoreOverview(doc: PDFKit.PDFDocument, result: AnalysisResult, opts:
 }
 
 /**
+ * Adds a section header with score
+ * @param doc The PDF document
+ * @param title Section title
+ * @param score Score value
+ */
+function addSectionHeader(doc: PDFKit.PDFDocument, title: string, score: number): void {
+  const y = doc.y;
+
+  // Title on the left
+  doc.fontSize(16)
+     .fillColor('#333333')
+     .text(title, 50, y);
+
+  // Score on the right with color
+  doc.fontSize(14)
+     .fillColor(getScoreColor(score))
+     .text(`${score}/100`, 50, y, { align: 'right', width: doc.page.width - 100 });
+
+  doc.y = y + 25;
+}
+
+/**
  * Adds the basic reports to the PDF
  * @param doc The PDF document
  * @param result The analysis result
@@ -290,85 +312,85 @@ function addScoreOverview(doc: PDFKit.PDFDocument, result: AnalysisResult, opts:
 function addBasicReports(doc: PDFKit.PDFDocument, result: AnalysisResult): void {
   doc.fontSize(18)
      .fillColor('#333333')
-     .text('Relatórios Básicos', { underline: true })
+     .text('Relatórios Básicos', 50, doc.y)
      .moveDown(1);
-  
+
   // SEO
-  doc.fontSize(16)
-     .fillColor('#333333')
-     .text('SEO', { continued: true })
-     .fontSize(12)
-     .text(` (${result.seo.score}/100)`, { align: 'right' })
-     .moveDown(0.5);
-  
+  addSectionHeader(doc, 'SEO', result.seo.score);
+
   doc.fontSize(12)
      .fillColor('#666666')
-     .text(result.seo.details)
-     .moveDown(1);
-  
+     .text(result.seo.details, 50)
+     .moveDown(0.5);
+
   if (result.seo.items) {
     result.seo.items.forEach(item => {
+      const checkmark = item.passed ? '✓' : '✗';
+      const color = item.passed ? '#4CAF50' : '#F44336';
+
       doc.fontSize(10)
-         .fillColor(item.passed ? '#4CAF50' : '#F44336')
-         .text(`${item.passed ? '✓' : '✗'} ${item.name}`, { continued: true })
+         .fillColor(color)
+         .text(`${checkmark} `, 50, doc.y, { continued: true })
+         .fillColor('#333333')
+         .text(`${item.name}: `, { continued: true })
          .fillColor('#666666')
-         .text(`: ${item.details}`)
-         .moveDown(0.5);
+         .text(item.details || '')
+         .moveDown(0.3);
     });
   }
-  
+
   doc.moveDown(1);
-  
+
   // Accessibility
-  doc.fontSize(16)
-     .fillColor('#333333')
-     .text('Acessibilidade', { continued: true })
-     .fontSize(12)
-     .text(` (${result.accessibility.score}/100)`, { align: 'right' })
-     .moveDown(0.5);
-  
+  addSectionHeader(doc, 'Acessibilidade', result.accessibility.score);
+
   doc.fontSize(12)
      .fillColor('#666666')
-     .text(result.accessibility.details)
-     .moveDown(1);
-  
+     .text(result.accessibility.details, 50)
+     .moveDown(0.5);
+
   if (result.accessibility.items) {
     result.accessibility.items.forEach(item => {
+      const checkmark = item.passed ? '✓' : '✗';
+      const color = item.passed ? '#4CAF50' : '#F44336';
+
       doc.fontSize(10)
-         .fillColor(item.passed ? '#4CAF50' : '#F44336')
-         .text(`${item.passed ? '✓' : '✗'} ${item.name}`, { continued: true })
+         .fillColor(color)
+         .text(`${checkmark} `, 50, doc.y, { continued: true })
+         .fillColor('#333333')
+         .text(`${item.name}: `, { continued: true })
          .fillColor('#666666')
-         .text(`: ${item.details}`)
-         .moveDown(0.5);
+         .text(item.details || '')
+         .moveDown(0.3);
     });
   }
-  
+
   doc.moveDown(1);
-  
+
   // Performance
-  doc.fontSize(16)
-     .fillColor('#333333')
-     .text('Performance', { continued: true })
-     .fontSize(12)
-     .text(` (${result.performance.score}/100)`, { align: 'right' })
-     .moveDown(0.5);
-  
+  addSectionHeader(doc, 'Performance', result.performance.score);
+
   doc.fontSize(12)
      .fillColor('#666666')
-     .text(result.performance.details)
-     .moveDown(1);
-  
+     .text(result.performance.details, 50)
+     .moveDown(0.5);
+
   if (result.performance.items) {
     result.performance.items.forEach(item => {
+      const checkmark = item.passed ? '✓' : '✗';
+      const color = item.passed ? '#4CAF50' : '#F44336';
+
       doc.fontSize(10)
-         .fillColor(item.passed ? '#4CAF50' : '#F44336')
-         .text(`${item.passed ? '✓' : '✗'} ${item.name}`, { continued: true })
+         .fillColor(color)
+         .text(`${checkmark} `, 50, doc.y, { continued: true })
+         .fillColor('#333333')
+         .text(`${item.name}: `, { continued: true })
          .fillColor('#666666')
-         .text(`: ${item.details}`)
-         .moveDown(0.5);
+         .text(item.details || '')
+         .moveDown(0.3);
     });
   }
-  
+
   doc.moveDown(2);
 }
 
@@ -378,32 +400,27 @@ function addBasicReports(doc: PDFKit.PDFDocument, result: AnalysisResult): void 
  * @param result The analysis result
  */
 function addSecurityReport(doc: PDFKit.PDFDocument, result: AnalysisResult): void {
-  doc.fontSize(18)
-     .fillColor('#333333')
-     .text('Segurança', { underline: true })
-     .moveDown(1);
-  
-  doc.fontSize(16)
-     .fillColor('#333333')
-     .text('Status: ', { continued: true })
-     .fillColor(getStatusColor(result.security.status))
-     .text(result.security.status)
-     .moveDown(0.5);
-  
+  addSectionHeader(doc, 'Segurança', result.security.score);
+
   doc.fontSize(12)
      .fillColor('#666666')
-     .text(result.security.details)
-     .moveDown(1);
-  
+     .text(result.security.details, 50)
+     .moveDown(0.5);
+
   result.security.items.forEach(item => {
+    const checkmark = item.passed ? '✓' : '✗';
+    const color = item.passed ? '#4CAF50' : '#F44336';
+
     doc.fontSize(10)
-       .fillColor(item.passed ? '#4CAF50' : '#F44336')
-       .text(`${item.passed ? '✓' : '✗'} ${item.name}`, { continued: true })
+       .fillColor(color)
+       .text(`${checkmark} `, 50, doc.y, { continued: true })
+       .fillColor('#333333')
+       .text(`${item.name}: `, { continued: true })
        .fillColor('#666666')
-       .text(`: ${item.details}`)
-       .moveDown(0.5);
+       .text(item.details || '')
+       .moveDown(0.3);
   });
-  
+
   doc.moveDown(2);
 }
 
@@ -413,32 +430,27 @@ function addSecurityReport(doc: PDFKit.PDFDocument, result: AnalysisResult): voi
  * @param result The analysis result
  */
 function addMobileReport(doc: PDFKit.PDFDocument, result: AnalysisResult): void {
-  doc.fontSize(18)
-     .fillColor('#333333')
-     .text('Mobile e Responsividade', { underline: true })
-     .moveDown(1);
-  
-  doc.fontSize(16)
-     .fillColor('#333333')
-     .text('Status: ', { continued: true })
-     .fillColor(getStatusColor(result.mobile.status))
-     .text(result.mobile.status)
-     .moveDown(0.5);
-  
+  addSectionHeader(doc, 'Mobile e Responsividade', result.mobile.score);
+
   doc.fontSize(12)
      .fillColor('#666666')
-     .text(result.mobile.details)
-     .moveDown(1);
-  
+     .text(result.mobile.details, 50)
+     .moveDown(0.5);
+
   result.mobile.items.forEach(item => {
+    const checkmark = item.passed ? '✓' : '✗';
+    const color = item.passed ? '#4CAF50' : '#F44336';
+
     doc.fontSize(10)
-       .fillColor(item.passed ? '#4CAF50' : '#F44336')
-       .text(`${item.passed ? '✓' : '✗'} ${item.name}`, { continued: true })
+       .fillColor(color)
+       .text(`${checkmark} `, 50, doc.y, { continued: true })
+       .fillColor('#333333')
+       .text(`${item.name}: `, { continued: true })
        .fillColor('#666666')
-       .text(`: ${item.details}`)
-       .moveDown(0.5);
+       .text(item.details || '')
+       .moveDown(0.3);
   });
-  
+
   doc.moveDown(2);
 }
 
@@ -448,32 +460,27 @@ function addMobileReport(doc: PDFKit.PDFDocument, result: AnalysisResult): void 
  * @param result The analysis result
  */
 function addAnalyticsReport(doc: PDFKit.PDFDocument, result: AnalysisResult): void {
-  doc.fontSize(18)
-     .fillColor('#333333')
-     .text('Analytics e Rastreamento', { underline: true })
-     .moveDown(1);
-  
-  doc.fontSize(16)
-     .fillColor('#333333')
-     .text('Status: ', { continued: true })
-     .fillColor(getStatusColor(result.analytics.status))
-     .text(result.analytics.status)
-     .moveDown(0.5);
-  
+  addSectionHeader(doc, 'Analytics e Rastreamento', result.analytics.score);
+
   doc.fontSize(12)
      .fillColor('#666666')
-     .text(result.analytics.details)
-     .moveDown(1);
-  
+     .text(result.analytics.details, 50)
+     .moveDown(0.5);
+
   result.analytics.items.forEach(item => {
+    const checkmark = item.passed ? '✓' : '✗';
+    const color = item.passed ? '#4CAF50' : '#F44336';
+
     doc.fontSize(10)
-       .fillColor(item.passed ? '#4CAF50' : '#F44336')
-       .text(`${item.passed ? '✓' : '✗'} ${item.name}`, { continued: true })
+       .fillColor(color)
+       .text(`${checkmark} `, 50, doc.y, { continued: true })
+       .fillColor('#333333')
+       .text(`${item.name}: `, { continued: true })
        .fillColor('#666666')
-       .text(`: ${item.details}`)
-       .moveDown(0.5);
+       .text(item.details || '')
+       .moveDown(0.3);
   });
-  
+
   doc.moveDown(2);
 }
 
@@ -483,32 +490,27 @@ function addAnalyticsReport(doc: PDFKit.PDFDocument, result: AnalysisResult): vo
  * @param result The analysis result
  */
 function addTechnicalSeoReport(doc: PDFKit.PDFDocument, result: AnalysisResult): void {
-  doc.fontSize(18)
-     .fillColor('#333333')
-     .text('SEO Técnico', { underline: true })
-     .moveDown(1);
-  
-  doc.fontSize(16)
-     .fillColor('#333333')
-     .text('Status: ', { continued: true })
-     .fillColor(getStatusColor(result.technicalSeo.status))
-     .text(result.technicalSeo.status)
-     .moveDown(0.5);
-  
+  addSectionHeader(doc, 'SEO Técnico', result.technicalSeo.score);
+
   doc.fontSize(12)
      .fillColor('#666666')
-     .text(result.technicalSeo.details)
-     .moveDown(1);
-  
+     .text(result.technicalSeo.details, 50)
+     .moveDown(0.5);
+
   result.technicalSeo.items.forEach(item => {
+    const checkmark = item.passed ? '✓' : '✗';
+    const color = item.passed ? '#4CAF50' : '#F44336';
+
     doc.fontSize(10)
-       .fillColor(item.passed ? '#4CAF50' : '#F44336')
-       .text(`${item.passed ? '✓' : '✗'} ${item.name}`, { continued: true })
+       .fillColor(color)
+       .text(`${checkmark} `, 50, doc.y, { continued: true })
+       .fillColor('#333333')
+       .text(`${item.name}: `, { continued: true })
        .fillColor('#666666')
-       .text(`: ${item.details}`)
-       .moveDown(0.5);
+       .text(item.details || '')
+       .moveDown(0.3);
   });
-  
+
   doc.moveDown(2);
 }
 
@@ -518,32 +520,27 @@ function addTechnicalSeoReport(doc: PDFKit.PDFDocument, result: AnalysisResult):
  * @param result The analysis result
  */
 function addHttpHeadersReport(doc: PDFKit.PDFDocument, result: AnalysisResult): void {
-  doc.fontSize(18)
-     .fillColor('#333333')
-     .text('Headers HTTP e Cache', { underline: true })
-     .moveDown(1);
-  
-  doc.fontSize(16)
-     .fillColor('#333333')
-     .text('Status: ', { continued: true })
-     .fillColor(getStatusColor(result.httpHeaders.status))
-     .text(result.httpHeaders.status)
-     .moveDown(0.5);
-  
+  addSectionHeader(doc, 'Headers HTTP e Cache', result.httpHeaders.score);
+
   doc.fontSize(12)
      .fillColor('#666666')
-     .text(result.httpHeaders.details)
-     .moveDown(1);
-  
+     .text(result.httpHeaders.details, 50)
+     .moveDown(0.5);
+
   result.httpHeaders.items.forEach(item => {
+    const checkmark = item.passed ? '✓' : '✗';
+    const color = item.passed ? '#4CAF50' : '#F44336';
+
     doc.fontSize(10)
-       .fillColor(item.passed ? '#4CAF50' : '#F44336')
-       .text(`${item.passed ? '✓' : '✗'} ${item.name}`, { continued: true })
+       .fillColor(color)
+       .text(`${checkmark} `, 50, doc.y, { continued: true })
+       .fillColor('#333333')
+       .text(`${item.name}: `, { continued: true })
        .fillColor('#666666')
-       .text(`: ${item.details}`)
-       .moveDown(0.5);
+       .text(item.details || '')
+       .moveDown(0.3);
   });
-  
+
   doc.moveDown(2);
 }
 
@@ -555,17 +552,17 @@ function addHttpHeadersReport(doc: PDFKit.PDFDocument, result: AnalysisResult): 
 function addAiAnalysis(doc: PDFKit.PDFDocument, result: AnalysisResult): void {
   try {
     doc.addPage();
-    
+
     doc.fontSize(18)
        .fillColor('#333333')
-       .text('Análise Detalhada por IA', { underline: true })
+       .text('Análise Detalhada por IA', 50, doc.y)
        .moveDown(1);
-    
+
     // Check if AI analysis is available
     if (!result.aiAnalysis || result.aiAnalysis.includes('Ocorreu um erro')) {
       doc.fontSize(12)
          .fillColor('#666666')
-         .text('A análise detalhada por IA não está disponível neste momento.')
+         .text('A análise detalhada por IA não está disponível neste momento.', 50)
          .moveDown(1);
       return;
     }
