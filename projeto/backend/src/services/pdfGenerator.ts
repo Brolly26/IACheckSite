@@ -75,15 +75,21 @@ export async function generatePdfReport(result: AnalysisResult, options: PdfOpti
   doc.pipe(passThrough);
   
   // Add content to the PDF
+  // NOVA ORDEM: Análise simples primeiro, dados técnicos como apêndice
+
+  // 1. Header com logo e título
   await addHeader(doc, opts);
-  addScoreOverview(doc, result, opts);
-  addBasicReports(doc, result);
-  addSecurityReport(doc, result);
-  addMobileReport(doc, result);
-  addAnalyticsReport(doc, result);
-  addTechnicalSeoReport(doc, result);
-  addHttpHeadersReport(doc, result);
+
+  // 2. Análise da IA (linguagem simples para dono de negócio)
   addAiAnalysis(doc, result);
+
+  // 3. Visão geral com pontuações visuais
+  addScoreOverview(doc, result, opts);
+
+  // 4. Apêndice técnico (dados detalhados)
+  addTechnicalAppendix(doc, result);
+
+  // 5. Footer em todas as páginas
   addFooter(doc, opts);
   
   // Finalize the PDF and end the stream
@@ -568,6 +574,43 @@ function addHttpHeadersReport(doc: PDFKit.PDFDocument, result: AnalysisResult): 
   });
 
   doc.moveDown(1);
+}
+
+/**
+ * Adds the technical appendix section with all detailed reports
+ * @param doc The PDF document
+ * @param result The analysis result
+ */
+function addTechnicalAppendix(doc: PDFKit.PDFDocument, result: AnalysisResult): void {
+  // Start appendix on new page
+  doc.addPage();
+
+  // Appendix title
+  doc.fontSize(22)
+     .fillColor('#333333')
+     .text('Apêndice Técnico', 50, doc.y, { align: 'center', width: doc.page.width - 100 })
+     .moveDown(0.3);
+
+  doc.fontSize(11)
+     .fillColor('#666666')
+     .text('Dados detalhados para sua equipe técnica ou desenvolvedor', 50, doc.y, { align: 'center', width: doc.page.width - 100 })
+     .moveDown(1);
+
+  // Separator
+  doc.strokeColor('#e0e0e0')
+     .lineWidth(1)
+     .moveTo(50, doc.y)
+     .lineTo(doc.page.width - 50, doc.y)
+     .stroke();
+  doc.moveDown(1);
+
+  // Add all technical reports
+  addBasicReports(doc, result);
+  addSecurityReport(doc, result);
+  addMobileReport(doc, result);
+  addAnalyticsReport(doc, result);
+  addTechnicalSeoReport(doc, result);
+  addHttpHeadersReport(doc, result);
 }
 
 /**
