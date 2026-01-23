@@ -15,172 +15,167 @@ if (process.env.OPENAI_API_KEY) {
 
 /**
  * Gera uma análise baseada nos dados coletados (fallback quando OpenAI não está disponível)
+ * Linguagem simples para donos de negócio (não técnicos)
  */
 function generateFallbackAnalysis(siteData: SiteData): string {
-  const pontosPositivos: string[] = [];
-  const melhorias: string[] = [];
-  const recomendacoes: string[] = [];
+  const criticos: string[] = [];
+  const importantes: string[] = [];
+  const bomTer: string[] = [];
+  const positivos: string[] = [];
 
-  // Analisar SEO
-  if (siteData.title && siteData.title.length > 0) {
-    pontosPositivos.push(`**Título da página**: "${siteData.title}" está configurado.`);
+  // Analisar HTTPS (CRÍTICO)
+  if (siteData.isHttps) {
+    positivos.push('Site tem conexão segura (cadeado verde)');
   } else {
-    melhorias.push('**Título da página ausente**: Adicione uma tag `<title>` descritiva.');
-    recomendacoes.push('Configure um título único e descritivo para cada página (50-60 caracteres).');
+    criticos.push(`**Site sem cadeado de segurança**
+   Por que importa: Clientes não confiam em sites "Não Seguro". O Google também penaliza sites assim.
+   Como resolver: Peça ao seu desenvolvedor/hospedagem para ativar o certificado SSL (geralmente é grátis).`);
+  }
+
+  // Analisar Performance (CRÍTICO se muito lento)
+  if (siteData.loadTime <= 2) {
+    positivos.push(`Site carrega rápido (${siteData.loadTime.toFixed(1)} segundos)`);
+  } else if (siteData.loadTime <= 3) {
+    importantes.push(`**Site um pouco lento (${siteData.loadTime.toFixed(1)} segundos)**
+   Por que importa: Cada segundo a mais = 10% menos vendas. Pessoas desistem de esperar.
+   Como resolver: Reduza o tamanho das imagens e remova plugins/scripts desnecessários.`);
+  } else {
+    criticos.push(`**Site muito lento (${siteData.loadTime.toFixed(1)} segundos)**
+   Por que importa: 53% das pessoas abandonam sites que demoram mais de 3 segundos. Você está perdendo clientes!
+   Como resolver: Comprima as imagens do site, use um serviço de hospedagem mais rápido, ou contrate otimização profissional.`);
+  }
+
+  // Analisar Título e Descrição para Google
+  if (siteData.title && siteData.title.length > 0) {
+    positivos.push('Site tem título configurado para o Google');
+  } else {
+    criticos.push(`**Site sem título para o Google**
+   Por que importa: O Google não sabe como mostrar seu site nos resultados de busca. Você fica invisível!
+   Como resolver: Defina um título claro que descreva seu negócio (ex: "Pizzaria do João - Delivery em SP").`);
   }
 
   if (siteData.metaDescription && siteData.metaDescription.length > 0) {
-    pontosPositivos.push(`**Meta description**: Configurada (${siteData.metaDescription.length} caracteres).`);
+    positivos.push('Site tem descrição para o Google');
   } else {
-    melhorias.push('**Meta description ausente**: Adicione uma meta description atrativa.');
-    recomendacoes.push('Crie uma meta description de 120-160 caracteres que resuma o conteúdo da página.');
+    importantes.push(`**Site sem descrição para o Google**
+   Por que importa: Quando seu site aparece no Google, não tem texto explicando o que você faz. Menos cliques!
+   Como resolver: Escreva 1-2 frases descrevendo seu negócio e o que você oferece.`);
   }
 
-  if (siteData.h1Count === 1) {
-    pontosPositivos.push('**Estrutura de headings**: Uma tag H1 encontrada (recomendado).');
-  } else if (siteData.h1Count === 0) {
-    melhorias.push('**Nenhuma tag H1 encontrada**: Adicione uma tag H1 principal.');
-    recomendacoes.push('Use uma única tag H1 por página com o título principal do conteúdo.');
+  // Analisar Mobile
+  if (siteData.hasViewportMeta) {
+    positivos.push('Site funciona no celular');
   } else {
-    melhorias.push(`**Múltiplas tags H1 (${siteData.h1Count})**: Use apenas uma tag H1 por página.`);
+    criticos.push(`**Site não funciona bem no celular**
+   Por que importa: 70% das pessoas acessam pelo celular. Se não funciona, você perde 7 de cada 10 visitantes!
+   Como resolver: O site precisa ser "responsivo". Peça ao desenvolvedor para adaptar.`);
   }
 
-  // Analisar HTTPS
-  if (siteData.isHttps) {
-    pontosPositivos.push('**HTTPS**: Conexão segura implementada.');
-  } else {
-    melhorias.push('**HTTPS ausente**: Configure SSL/TLS para segurança.');
-    recomendacoes.push('Implemente certificado SSL para habilitar HTTPS e melhorar segurança e SEO.');
-  }
+  // Analisar Analytics
+  const hasAnalytics = siteData.analyticsTools.googleAnalytics ||
+                       siteData.analyticsTools.metaPixel ||
+                       siteData.analyticsTools.linkedInInsightTag;
 
-  // Analisar Performance
-  if (siteData.loadTime <= 2) {
-    pontosPositivos.push(`**Performance**: Tempo de carregamento excelente (${siteData.loadTime.toFixed(2)}s).`);
-  } else if (siteData.loadTime <= 3) {
-    pontosPositivos.push(`**Performance**: Tempo de carregamento bom (${siteData.loadTime.toFixed(2)}s).`);
+  if (hasAnalytics) {
+    positivos.push('Ferramentas de análise de visitantes instaladas');
   } else {
-    melhorias.push(`**Performance**: Tempo de carregamento lento (${siteData.loadTime.toFixed(2)}s).`);
-    recomendacoes.push('Otimize imagens, use CDN e minimize recursos para melhorar o tempo de carregamento.');
-  }
-
-  if (siteData.totalSizeKB <= 1000) {
-    pontosPositivos.push(`**Tamanho da página**: Adequado (${siteData.totalSizeKB} KB).`);
-  } else {
-    melhorias.push(`**Tamanho da página**: Grande (${siteData.totalSizeKB} KB).`);
-    recomendacoes.push('Comprima imagens e minimize arquivos CSS/JS para reduzir o tamanho da página.');
-  }
-
-  // Analisar Acessibilidade
-  if (siteData.imagesWithoutAlt === 0) {
-    pontosPositivos.push('**Acessibilidade**: Todas as imagens possuem texto alternativo.');
-  } else {
-    melhorias.push(`**Acessibilidade**: ${siteData.imagesWithoutAlt} imagem(ns) sem texto alternativo.`);
-    recomendacoes.push('Adicione atributo `alt` descritivo em todas as imagens para melhorar acessibilidade.');
+    importantes.push(`**Você não sabe quantas pessoas visitam seu site**
+   Por que importa: Sem dados, você não sabe se seu marketing está funcionando. É como dirigir de olhos fechados!
+   Como resolver: Instale o Google Analytics (é grátis). Qualquer desenvolvedor faz em 10 minutos.`);
   }
 
   // Analisar Segurança
-  const securityHeadersCount = [
+  const securityCount = [
     siteData.securityHeaders.xContentTypeOptions,
     siteData.securityHeaders.xFrameOptions,
     siteData.securityHeaders.strictTransportSecurity,
     siteData.securityHeaders.contentSecurityPolicy
   ].filter(Boolean).length;
 
-  if (securityHeadersCount === 4) {
-    pontosPositivos.push('**Segurança**: Todos os headers de segurança configurados.');
+  if (securityCount === 4) {
+    positivos.push('Proteções de segurança completas');
+  } else if (securityCount >= 2) {
+    bomTer.push(`**Segurança pode ser melhorada**
+   Por que importa: Proteções extras evitam que hackers invadam seu site ou roubem dados.
+   Como resolver: Peça ao desenvolvedor para configurar as proteções de segurança do servidor.`);
   } else {
-    melhorias.push(`**Segurança**: Apenas ${securityHeadersCount}/4 headers de segurança configurados.`);
-    recomendacoes.push('Configure headers de segurança: X-Content-Type-Options, X-Frame-Options, Strict-Transport-Security e Content-Security-Policy.');
+    importantes.push(`**Site com poucas proteções de segurança**
+   Por que importa: Seu site está vulnerável a ataques. Hackers podem derrubar ou usar para golpes!
+   Como resolver: Configure proteções de segurança no servidor. Um desenvolvedor resolve em algumas horas.`);
   }
 
-  if (siteData.vulnerableLibraries.length > 0) {
-    melhorias.push(`**Bibliotecas vulneráveis**: ${siteData.vulnerableLibraries.length} biblioteca(s) com vulnerabilidades conhecidas.`);
-    recomendacoes.push(`Atualize as seguintes bibliotecas: ${siteData.vulnerableLibraries.join(', ')}.`);
+  // Analisar Robots e Sitemap
+  if (siteData.hasRobotsTxt && siteData.hasSitemapXml) {
+    positivos.push('Arquivos para o Google encontrar seu site configurados');
+  } else if (!siteData.hasRobotsTxt && !siteData.hasSitemapXml) {
+    importantes.push(`**Google tem dificuldade para encontrar suas páginas**
+   Por que importa: Sem os arquivos certos, o Google pode não encontrar todas as páginas do seu site.
+   Como resolver: Crie um "mapa do site" (sitemap). A maioria dos criadores de site faz isso automaticamente.`);
   }
 
-  // Analisar Mobile
-  if (siteData.hasViewportMeta) {
-    pontosPositivos.push('**Mobile**: Viewport meta tag configurada.');
+  // Analisar Tamanho
+  if (siteData.totalSizeKB <= 1000) {
+    positivos.push('Tamanho do site adequado');
+  } else if (siteData.totalSizeKB <= 2000) {
+    bomTer.push(`**Site um pouco pesado (${Math.round(siteData.totalSizeKB / 1024 * 10) / 10} MB)**
+   Por que importa: Sites pesados demoram mais para carregar, especialmente no 4G.
+   Como resolver: Comprima as imagens do site. Existem ferramentas online grátis para isso.`);
   } else {
-    melhorias.push('**Mobile**: Viewport meta tag ausente.');
-    recomendacoes.push('Adicione `<meta name="viewport" content="width=device-width, initial-scale=1.0">` no `<head>`.');
+    importantes.push(`**Site muito pesado (${Math.round(siteData.totalSizeKB / 1024 * 10) / 10} MB)**
+   Por que importa: Demora muito para carregar, especialmente no celular. Visitantes desistem!
+   Como resolver: Reduza o tamanho das imagens e remova arquivos desnecessários.`);
   }
 
-  // Analisar Analytics
-  const hasAnalytics = siteData.analyticsTools.googleAnalytics || 
-                       siteData.analyticsTools.metaPixel || 
-                       siteData.analyticsTools.linkedInInsightTag;
-  
-  if (hasAnalytics) {
-    pontosPositivos.push('**Analytics**: Ferramentas de rastreamento configuradas.');
-  } else {
-    melhorias.push('**Analytics**: Nenhuma ferramenta de analytics detectada.');
-    recomendacoes.push('Configure Google Analytics, Meta Pixel ou outras ferramentas de rastreamento.');
-  }
-
-  // Analisar SEO Técnico
-  if (siteData.hasStructuredData) {
-    pontosPositivos.push('**SEO Técnico**: Dados estruturados (Schema.org) encontrados.');
-  } else {
-    melhorias.push('**SEO Técnico**: Dados estruturados ausentes.');
-    recomendacoes.push('Implemente dados estruturados (JSON-LD) para melhorar a exibição nos resultados de busca.');
-  }
-
-  // Analisar Cache
-  if (siteData.headers.cacheControl || siteData.headers.etag) {
-    pontosPositivos.push('**Cache**: Headers de cache configurados.');
-  } else {
-    melhorias.push('**Cache**: Headers de cache não configurados.');
-    recomendacoes.push('Configure Cache-Control e ETag para melhorar performance e reduzir carga no servidor.');
-  }
-
-  // Analisar Robots.txt e Sitemap
-  if (siteData.hasRobotsTxt) {
-    pontosPositivos.push('**Robots.txt**: Arquivo encontrado.');
-  } else {
-    melhorias.push('**Robots.txt**: Arquivo ausente.');
-    recomendacoes.push('Crie um arquivo robots.txt na raiz do site para orientar crawlers.');
-  }
-
-  if (siteData.hasSitemapXml) {
-    pontosPositivos.push('**Sitemap.xml**: Arquivo encontrado.');
-  } else {
-    melhorias.push('**Sitemap.xml**: Arquivo ausente.');
-    recomendacoes.push('Crie um sitemap.xml para facilitar a indexação do site pelos motores de busca.');
+  // Analisar Acessibilidade
+  if (siteData.imagesWithoutAlt > 0) {
+    bomTer.push(`**${siteData.imagesWithoutAlt} imagens sem descrição**
+   Por que importa: Pessoas com deficiência visual não conseguem entender as imagens. O Google também usa isso.
+   Como resolver: Adicione descrições às imagens (texto alternativo).`);
   }
 
   // Construir análise
-  let analysis = `# Diagnóstico Técnico do Site\n\n`;
-  
-  analysis += `## Diagnóstico Geral\n\n`;
-  if (pontosPositivos.length > melhorias.length) {
-    analysis += `O site apresenta uma implementação técnica de qualidade **boa**, com vários pontos positivos identificados. Existem algumas oportunidades de melhoria que podem elevar ainda mais a qualidade técnica do site.\n\n`;
-  } else if (melhorias.length > pontosPositivos.length) {
-    analysis += `O site apresenta uma implementação técnica que precisa de **melhorias significativas**. Vários aspectos importantes não estão configurados ou podem ser otimizados.\n\n`;
+  let analysis = `# Diagnóstico do Seu Site\n\n`;
+
+  // Resumo executivo
+  analysis += `## Resumo\n\n`;
+  if (criticos.length === 0 && importantes.length <= 1) {
+    analysis += `Seu site está em **boa forma**! Encontramos ${positivos.length} pontos positivos e apenas algumas melhorias opcionais.\n\n`;
+  } else if (criticos.length >= 2) {
+    analysis += `Seu site precisa de **atenção urgente**. Encontramos ${criticos.length} problemas críticos que podem estar custando clientes e vendas.\n\n`;
   } else {
-    analysis += `O site apresenta uma implementação técnica de qualidade **média**, com pontos positivos e áreas que precisam de atenção.\n\n`;
+    analysis += `Seu site está **razoável**, mas tem espaço para melhorar. Corrigindo os pontos abaixo, você pode atrair mais clientes.\n\n`;
   }
 
-  if (pontosPositivos.length > 0) {
-    analysis += `## Pontos Positivos\n\n`;
-    pontosPositivos.forEach(ponto => {
-      analysis += `- ${ponto}\n`;
+  // Pontos positivos
+  if (positivos.length > 0) {
+    analysis += `## O Que Está Funcionando Bem\n\n`;
+    positivos.forEach(p => {
+      analysis += `- ${p}\n`;
     });
     analysis += `\n`;
   }
 
-  if (melhorias.length > 0) {
-    analysis += `## O Que Precisa Melhorar\n\n`;
-    melhorias.forEach(melhoria => {
-      analysis += `- ${melhoria}\n`;
+  // Problemas críticos
+  if (criticos.length > 0) {
+    analysis += `## Problemas Críticos (Resolver Primeiro!)\n\n`;
+    criticos.forEach(c => {
+      analysis += `${c}\n\n`;
     });
-    analysis += `\n`;
   }
 
-  if (recomendacoes.length > 0) {
-    analysis += `## Recomendações Simples\n\n`;
-    recomendacoes.forEach((rec, index) => {
-      analysis += `${index + 1}. ${rec}\n`;
+  // Problemas importantes
+  if (importantes.length > 0) {
+    analysis += `## Problemas Importantes\n\n`;
+    importantes.forEach(i => {
+      analysis += `${i}\n\n`;
+    });
+  }
+
+  // Bom ter
+  if (bomTer.length > 0) {
+    analysis += `## Melhorias Opcionais\n\n`;
+    bomTer.forEach(b => {
+      analysis += `${b}\n\n`;
     });
   }
 
@@ -198,55 +193,66 @@ export async function generateAIAnalysis(siteData: SiteData): Promise<string> {
     console.log('🤖 Generating AI analysis with OpenAI...');
 
     const prompt = `
-Você é um especialista técnico em SEO, acessibilidade, performance web, segurança e análise técnica de sites. Receberá dados técnicos de um site e deve gerar um relatório em português claro, com explicações acessíveis para leigos e sugestões práticas de melhoria. Destaque os principais erros e boas práticas.
+Você é um consultor de marketing digital explicando para um DONO DE NEGÓCIO (não técnico).
 
-Dados básicos:
-- Título da página: ${siteData.title}
-- Meta description: ${siteData.metaDescription}
-- Tempo de carregamento: ${siteData.loadTime.toFixed(2)} segundos
-- HTTPS ativo: ${siteData.isHttps ? 'Sim' : 'Não'}
-- Imagens sem alt: ${siteData.imagesWithoutAlt}
-- Tamanho total dos arquivos: ${siteData.totalSizeKB} KB
-- Tags H1: ${siteData.h1Count}
-- Tags H2: ${siteData.h2Count}
-- Tags H3: ${siteData.h3Count}
-- Robots.txt: ${siteData.hasRobotsTxt ? 'Presente' : 'Ausente'}
-- Sitemap.xml: ${siteData.hasSitemapXml ? 'Presente' : 'Ausente'}
+REGRAS IMPORTANTES:
+- Use português SIMPLES, sem jargões técnicos
+- Para cada problema, explique POR QUE importa (impacto no negócio/vendas)
+- Dê recomendações PRÁTICAS e diretas
+- Evite termos como: viewport, LCP, CLS, canonical, headers, meta tags
+- Use linguagem como: "aparecer no Google", "carregar rápido", "funcionar no celular", "proteger contra hackers"
 
-Dados de segurança:
-- X-Content-Type-Options: ${siteData.securityHeaders.xContentTypeOptions ? 'Presente' : 'Ausente'}
-- X-Frame-Options: ${siteData.securityHeaders.xFrameOptions ? 'Presente' : 'Ausente'}
-- Strict-Transport-Security: ${siteData.securityHeaders.strictTransportSecurity ? 'Presente' : 'Ausente'}
-- Content-Security-Policy: ${siteData.securityHeaders.contentSecurityPolicy ? 'Presente' : 'Ausente'}
-- Bibliotecas vulneráveis: ${siteData.vulnerableLibraries.length > 0 ? siteData.vulnerableLibraries.join(', ') : 'Nenhuma detectada'}
+DADOS DO SITE ANALISADO:
 
-Dados de mobile e responsividade:
-- Viewport meta tag: ${siteData.hasViewportMeta ? 'Presente' : 'Ausente'}
-- Tamanho de fonte em mobile: ${siteData.fontSizeOnMobile}
-- Áreas clicáveis adequadas: ${siteData.clickableAreasSufficient ? 'Sim' : 'Não'}
+Informações básicas:
+- Nome/Título do site: ${siteData.title || 'Não configurado'}
+- Descrição para o Google: ${siteData.metaDescription || 'Não configurada'}
+- Tempo para carregar: ${siteData.loadTime.toFixed(2)} segundos
+- Conexão segura (cadeado): ${siteData.isHttps ? 'Sim' : 'Não'}
+- Imagens sem descrição: ${siteData.imagesWithoutAlt}
+- Peso da página: ${siteData.totalSizeKB} KB
 
-Dados de analytics e rastreamento:
-- Google Analytics: ${siteData.analyticsTools.googleAnalytics ? 'Presente' : 'Ausente'}
-- Meta Pixel: ${siteData.analyticsTools.metaPixel ? 'Presente' : 'Ausente'}
-- LinkedIn Insight Tag: ${siteData.analyticsTools.linkedInInsightTag ? 'Presente' : 'Ausente'}
-- Outros trackers: ${siteData.analyticsTools.otherTrackers.length > 0 ? siteData.analyticsTools.otherTrackers.join(', ') : 'Nenhum'}
-- Scripts no head: ${siteData.trackingScriptPlacement.inHead.length > 0 ? siteData.trackingScriptPlacement.inHead.join(', ') : 'Nenhum'}
-- Scripts no body: ${siteData.trackingScriptPlacement.inBody.length > 0 ? siteData.trackingScriptPlacement.inBody.join(', ') : 'Nenhum'}
+Organização do conteúdo:
+- Título principal (H1): ${siteData.h1Count}
+- Subtítulos: ${siteData.h2Count + siteData.h3Count}
 
-Dados técnicos de SEO:
-- Meta tags: Title (${siteData.metaTags.title ? 'Presente' : 'Ausente'}), Description (${siteData.metaTags.description ? 'Presente' : 'Ausente'}), Canonical (${siteData.metaTags.canonical ? 'Presente' : 'Ausente'}), OG Image (${siteData.metaTags.ogImage ? 'Presente' : 'Ausente'})
-- Dados estruturados: ${siteData.hasStructuredData ? 'Presentes' : 'Ausentes'}
+Arquivos para o Google:
+- Robots.txt: ${siteData.hasRobotsTxt ? 'OK' : 'Faltando'}
+- Sitemap: ${siteData.hasSitemapXml ? 'OK' : 'Faltando'}
 
-Dados de headers HTTP e cache:
-- Cache-Control: ${siteData.headers.cacheControl || 'Não configurado'}
-- ETag: ${siteData.headers.etag ? 'Presente' : 'Ausente'}
-- Expires: ${siteData.headers.expires || 'Não configurado'}
+Segurança:
+- Proteções ativas: ${[siteData.securityHeaders.xContentTypeOptions, siteData.securityHeaders.xFrameOptions, siteData.securityHeaders.strictTransportSecurity, siteData.securityHeaders.contentSecurityPolicy].filter(Boolean).length}/4
+- Programas desatualizados: ${siteData.vulnerableLibraries.length > 0 ? siteData.vulnerableLibraries.join(', ') : 'Nenhum'}
 
-Gere um relatório organizado com seções:
-1. Diagnóstico geral
-2. Pontos positivos
-3. O que precisa melhorar
-4. Recomendações simples
+Funciona no celular:
+- Adaptado para celular: ${siteData.hasViewportMeta ? 'Sim' : 'Não'}
+- Texto legível: ${siteData.fontSizeOnMobile === 'Adequado' ? 'Sim' : 'Não'}
+- Botões fáceis de clicar: ${siteData.clickableAreasSufficient ? 'Sim' : 'Não'}
+
+Ferramentas de análise de visitantes:
+- Google Analytics: ${siteData.analyticsTools.googleAnalytics ? 'Instalado' : 'Não instalado'}
+- Pixel do Facebook/Meta: ${siteData.analyticsTools.metaPixel ? 'Instalado' : 'Não instalado'}
+- LinkedIn: ${siteData.analyticsTools.linkedInInsightTag ? 'Instalado' : 'Não instalado'}
+
+Aparência nas redes sociais:
+- Imagem de compartilhamento: ${siteData.metaTags.ogImage ? 'Configurada' : 'Não configurada'}
+
+Velocidade em visitas repetidas:
+- Cache configurado: ${siteData.headers.cacheControl ? 'Sim' : 'Não'}
+
+GERE O RELATÓRIO COM ESTAS SEÇÕES:
+
+## Resumo Executivo
+(2-3 frases sobre a situação geral do site)
+
+## O Que Está Funcionando Bem
+(Liste os pontos positivos de forma simples)
+
+## Problemas Que Estão Custando Dinheiro
+(Para cada problema, explique o impacto no negócio. Ex: "Site lento = visitantes desistem = menos vendas")
+
+## Próximos Passos (Por Prioridade)
+(Liste 3-5 ações concretas, começando pela mais importante)
 `;
 
     // Timeout para requisição de 30 segundos
@@ -259,7 +265,7 @@ Gere um relatório organizado com seções:
       messages: [
         {
           role: "system",
-          content: "Você é um especialista em análise técnica de websites. Responda sempre em português BR de forma clara, objetiva e acionável. Foque em recomendações práticas que o dono do site pode implementar."
+          content: "Você é um consultor de marketing digital falando com donos de negócio que NÃO entendem de tecnologia. Use linguagem simples e direta. Sempre explique POR QUE cada problema importa (impacto em vendas, clientes, dinheiro). Nunca use jargões técnicos. Exemplo: em vez de 'LCP alto', diga 'site demora para carregar'. Em vez de 'meta description ausente', diga 'o Google não sabe como descrever seu site'."
         },
         {
           role: "user",
