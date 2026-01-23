@@ -314,19 +314,39 @@ function addSectionHeader(doc: PDFKit.PDFDocument, title: string, score: number)
   // Ensure we have enough space for the header AND some content (at least 120px)
   ensurePageSpace(doc, 120);
 
+  // Add spacing before section
+  doc.moveDown(0.8);
+
   const y = doc.y;
 
   // Title on the left
-  doc.fontSize(16)
+  doc.fontSize(15)
      .fillColor('#333333')
      .text(title, 50, y);
 
   // Score on the right with color
-  doc.fontSize(14)
+  doc.fontSize(13)
      .fillColor(getScoreColor(score))
      .text(`${score}/100`, 50, y, { align: 'right', width: doc.page.width - 100 });
 
-  doc.y = y + 25;
+  doc.y = y + 30;
+}
+
+/**
+ * Adds a checklist item with proper spacing
+ */
+function addChecklistItem(doc: PDFKit.PDFDocument, item: { name: string; passed: boolean; details?: string }): void {
+  const checkmark = item.passed ? '✓' : '✗';
+  const color = item.passed ? '#4CAF50' : '#e53935';
+
+  doc.fontSize(10)
+     .fillColor(color)
+     .text(`${checkmark} `, 60, doc.y, { continued: true })
+     .fillColor('#444444')
+     .text(`${item.name}: `, { continued: true })
+     .fillColor('#666666')
+     .text(item.details || '')
+     .moveDown(0.5);
 }
 
 /**
@@ -340,85 +360,49 @@ function addBasicReports(doc: PDFKit.PDFDocument, result: AnalysisResult): void 
   doc.fontSize(18)
      .fillColor('#333333')
      .text('Relatórios Básicos', 50, doc.y)
-     .moveDown(0.5);
+     .moveDown(0.8);
 
   // SEO
   addSectionHeader(doc, 'SEO', result.seo.score);
 
-  doc.fontSize(12)
-     .fillColor('#666666')
-     .text(result.seo.details, 50)
-     .moveDown(0.5);
+  doc.fontSize(11)
+     .fillColor('#555555')
+     .text(result.seo.details, 50, doc.y, { lineGap: 2 })
+     .moveDown(0.6);
 
   if (result.seo.items) {
-    result.seo.items.forEach(item => {
-      const checkmark = item.passed ? '✓' : '✗';
-      const color = item.passed ? '#4CAF50' : '#F44336';
-
-      doc.fontSize(10)
-         .fillColor(color)
-         .text(`${checkmark} `, 50, doc.y, { continued: true })
-         .fillColor('#333333')
-         .text(`${item.name}: `, { continued: true })
-         .fillColor('#666666')
-         .text(item.details || '')
-         .moveDown(0.3);
-    });
+    result.seo.items.forEach(item => addChecklistItem(doc, item));
   }
 
-  doc.moveDown(1);
+  doc.moveDown(0.8);
 
   // Accessibility
   addSectionHeader(doc, 'Acessibilidade', result.accessibility.score);
 
-  doc.fontSize(12)
-     .fillColor('#666666')
-     .text(result.accessibility.details, 50)
-     .moveDown(0.5);
+  doc.fontSize(11)
+     .fillColor('#555555')
+     .text(result.accessibility.details, 50, doc.y, { lineGap: 2 })
+     .moveDown(0.6);
 
   if (result.accessibility.items) {
-    result.accessibility.items.forEach(item => {
-      const checkmark = item.passed ? '✓' : '✗';
-      const color = item.passed ? '#4CAF50' : '#F44336';
-
-      doc.fontSize(10)
-         .fillColor(color)
-         .text(`${checkmark} `, 50, doc.y, { continued: true })
-         .fillColor('#333333')
-         .text(`${item.name}: `, { continued: true })
-         .fillColor('#666666')
-         .text(item.details || '')
-         .moveDown(0.3);
-    });
+    result.accessibility.items.forEach(item => addChecklistItem(doc, item));
   }
 
-  doc.moveDown(1);
+  doc.moveDown(0.8);
 
   // Performance
   addSectionHeader(doc, 'Performance', result.performance.score);
 
-  doc.fontSize(12)
-     .fillColor('#666666')
-     .text(result.performance.details, 50)
-     .moveDown(0.5);
+  doc.fontSize(11)
+     .fillColor('#555555')
+     .text(result.performance.details, 50, doc.y, { lineGap: 2 })
+     .moveDown(0.6);
 
   if (result.performance.items) {
-    result.performance.items.forEach(item => {
-      const checkmark = item.passed ? '✓' : '✗';
-      const color = item.passed ? '#4CAF50' : '#F44336';
-
-      doc.fontSize(10)
-         .fillColor(color)
-         .text(`${checkmark} `, 50, doc.y, { continued: true })
-         .fillColor('#333333')
-         .text(`${item.name}: `, { continued: true })
-         .fillColor('#666666')
-         .text(item.details || '')
-         .moveDown(0.3);
-    });
+    result.performance.items.forEach(item => addChecklistItem(doc, item));
   }
 
-  doc.moveDown(1);
+  doc.moveDown(0.8);
 }
 
 /**
@@ -430,26 +414,14 @@ function addSecurityReport(doc: PDFKit.PDFDocument, result: AnalysisResult): voi
   ensurePageSpace(doc, 150);
   addSectionHeader(doc, 'Segurança', result.security.score);
 
-  doc.fontSize(12)
-     .fillColor('#666666')
-     .text(result.security.details, 50)
-     .moveDown(0.5);
+  doc.fontSize(11)
+     .fillColor('#555555')
+     .text(result.security.details, 50, doc.y, { lineGap: 2 })
+     .moveDown(0.6);
 
-  result.security.items.forEach(item => {
-    const checkmark = item.passed ? '✓' : '✗';
-    const color = item.passed ? '#4CAF50' : '#F44336';
+  result.security.items.forEach(item => addChecklistItem(doc, item));
 
-    doc.fontSize(10)
-       .fillColor(color)
-       .text(`${checkmark} `, 50, doc.y, { continued: true })
-       .fillColor('#333333')
-       .text(`${item.name}: `, { continued: true })
-       .fillColor('#666666')
-       .text(item.details || '')
-       .moveDown(0.3);
-  });
-
-  doc.moveDown(1);
+  doc.moveDown(0.8);
 }
 
 /**
@@ -461,26 +433,14 @@ function addMobileReport(doc: PDFKit.PDFDocument, result: AnalysisResult): void 
   ensurePageSpace(doc, 150);
   addSectionHeader(doc, 'Mobile e Responsividade', result.mobile.score);
 
-  doc.fontSize(12)
-     .fillColor('#666666')
-     .text(result.mobile.details, 50)
-     .moveDown(0.5);
+  doc.fontSize(11)
+     .fillColor('#555555')
+     .text(result.mobile.details, 50, doc.y, { lineGap: 2 })
+     .moveDown(0.6);
 
-  result.mobile.items.forEach(item => {
-    const checkmark = item.passed ? '✓' : '✗';
-    const color = item.passed ? '#4CAF50' : '#F44336';
+  result.mobile.items.forEach(item => addChecklistItem(doc, item));
 
-    doc.fontSize(10)
-       .fillColor(color)
-       .text(`${checkmark} `, 50, doc.y, { continued: true })
-       .fillColor('#333333')
-       .text(`${item.name}: `, { continued: true })
-       .fillColor('#666666')
-       .text(item.details || '')
-       .moveDown(0.3);
-  });
-
-  doc.moveDown(1);
+  doc.moveDown(0.8);
 }
 
 /**
@@ -492,26 +452,14 @@ function addAnalyticsReport(doc: PDFKit.PDFDocument, result: AnalysisResult): vo
   ensurePageSpace(doc, 150);
   addSectionHeader(doc, 'Analytics e Rastreamento', result.analytics.score);
 
-  doc.fontSize(12)
-     .fillColor('#666666')
-     .text(result.analytics.details, 50)
-     .moveDown(0.5);
+  doc.fontSize(11)
+     .fillColor('#555555')
+     .text(result.analytics.details, 50, doc.y, { lineGap: 2 })
+     .moveDown(0.6);
 
-  result.analytics.items.forEach(item => {
-    const checkmark = item.passed ? '✓' : '✗';
-    const color = item.passed ? '#4CAF50' : '#F44336';
+  result.analytics.items.forEach(item => addChecklistItem(doc, item));
 
-    doc.fontSize(10)
-       .fillColor(color)
-       .text(`${checkmark} `, 50, doc.y, { continued: true })
-       .fillColor('#333333')
-       .text(`${item.name}: `, { continued: true })
-       .fillColor('#666666')
-       .text(item.details || '')
-       .moveDown(0.3);
-  });
-
-  doc.moveDown(1);
+  doc.moveDown(0.8);
 }
 
 /**
@@ -523,26 +471,14 @@ function addTechnicalSeoReport(doc: PDFKit.PDFDocument, result: AnalysisResult):
   ensurePageSpace(doc, 150);
   addSectionHeader(doc, 'SEO Técnico', result.technicalSeo.score);
 
-  doc.fontSize(12)
-     .fillColor('#666666')
-     .text(result.technicalSeo.details, 50)
-     .moveDown(0.5);
+  doc.fontSize(11)
+     .fillColor('#555555')
+     .text(result.technicalSeo.details, 50, doc.y, { lineGap: 2 })
+     .moveDown(0.6);
 
-  result.technicalSeo.items.forEach(item => {
-    const checkmark = item.passed ? '✓' : '✗';
-    const color = item.passed ? '#4CAF50' : '#F44336';
+  result.technicalSeo.items.forEach(item => addChecklistItem(doc, item));
 
-    doc.fontSize(10)
-       .fillColor(color)
-       .text(`${checkmark} `, 50, doc.y, { continued: true })
-       .fillColor('#333333')
-       .text(`${item.name}: `, { continued: true })
-       .fillColor('#666666')
-       .text(item.details || '')
-       .moveDown(0.3);
-  });
-
-  doc.moveDown(1);
+  doc.moveDown(0.8);
 }
 
 /**
@@ -554,26 +490,14 @@ function addHttpHeadersReport(doc: PDFKit.PDFDocument, result: AnalysisResult): 
   ensurePageSpace(doc, 150);
   addSectionHeader(doc, 'Headers HTTP e Cache', result.httpHeaders.score);
 
-  doc.fontSize(12)
-     .fillColor('#666666')
-     .text(result.httpHeaders.details, 50)
-     .moveDown(0.5);
+  doc.fontSize(11)
+     .fillColor('#555555')
+     .text(result.httpHeaders.details, 50, doc.y, { lineGap: 2 })
+     .moveDown(0.6);
 
-  result.httpHeaders.items.forEach(item => {
-    const checkmark = item.passed ? '✓' : '✗';
-    const color = item.passed ? '#4CAF50' : '#F44336';
+  result.httpHeaders.items.forEach(item => addChecklistItem(doc, item));
 
-    doc.fontSize(10)
-       .fillColor(color)
-       .text(`${checkmark} `, 50, doc.y, { continued: true })
-       .fillColor('#333333')
-       .text(`${item.name}: `, { continued: true })
-       .fillColor('#666666')
-       .text(item.details || '')
-       .moveDown(0.3);
-  });
-
-  doc.moveDown(1);
+  doc.moveDown(0.8);
 }
 
 /**
@@ -648,34 +572,45 @@ function addAiAnalysis(doc: PDFKit.PDFDocument, result: AnalysisResult): void {
 
         // Check if it's a heading
         if (paragraph.startsWith('# ')) {
-          ensurePageSpace(doc, 80);
-          doc.fontSize(18)
-             .fillColor('#333333')
+          ensurePageSpace(doc, 100);
+          doc.moveDown(0.8);
+          doc.fontSize(20)
+             .fillColor('#1a1a1a')
              .text(paragraph.substring(2))
-             .moveDown(0.5);
+             .moveDown(0.8);
         } else if (paragraph.startsWith('## ')) {
-          ensurePageSpace(doc, 70);
+          ensurePageSpace(doc, 90);
+          doc.moveDown(0.6);
           doc.fontSize(16)
              .fillColor('#333333')
              .text(paragraph.substring(3))
-             .moveDown(0.5);
+             .moveDown(0.6);
         } else if (paragraph.startsWith('### ')) {
-          ensurePageSpace(doc, 60);
+          ensurePageSpace(doc, 80);
+          doc.moveDown(0.4);
           doc.fontSize(14)
-             .fillColor('#333333')
+             .fillColor('#444444')
              .text(paragraph.substring(4))
-             .moveDown(0.5);
+             .moveDown(0.4);
         } else if (paragraph.startsWith('- ')) {
           // It's a bullet point
-          doc.fontSize(12)
-             .fillColor('#666666')
-             .text(`• ${paragraph.substring(2)}`)
+          doc.fontSize(11)
+             .fillColor('#555555')
+             .text(`  • ${paragraph.substring(2)}`, { indent: 15 })
+             .moveDown(0.4);
+        } else if (paragraph.startsWith('**') && paragraph.endsWith('**')) {
+          // Bold text (problem title)
+          ensurePageSpace(doc, 70);
+          doc.moveDown(0.5);
+          doc.fontSize(13)
+             .fillColor('#d32f2f')
+             .text(paragraph.replace(/\*\*/g, ''))
              .moveDown(0.3);
         } else if (paragraph.trim().length > 0) {
           // It's a regular paragraph
-          doc.fontSize(12)
-             .fillColor('#666666')
-             .text(paragraph)
+          doc.fontSize(11)
+             .fillColor('#555555')
+             .text(paragraph, { lineGap: 3 })
              .moveDown(0.5);
         }
       } catch (error) {
@@ -696,49 +631,49 @@ function addAiAnalysis(doc: PDFKit.PDFDocument, result: AnalysisResult): void {
  */
 function addFooter(doc: PDFKit.PDFDocument, opts: PdfOptions): void {
   try {
-    // Get the current page range
+    // Flushes pages so bufferedPageRange returns correct count
     const range = doc.bufferedPageRange();
+    if (!range || range.count === 0) return;
+
     const totalPages = range.count;
 
     // Determine footer text
     const footerText = opts.agencyName
       ? `© ${new Date().getFullYear()} ${opts.agencyName}${opts.agencyWebsite ? ' • ' + opts.agencyWebsite : ''}`
-      : `Relatório gerado automaticamente`;
+      : '';
 
-    // Add footer to each page in the range
+    // Add footer to each page
     for (let i = 0; i < totalPages; i++) {
-      const pageNumber = range.start + i;
-      doc.switchToPage(pageNumber);
+      doc.switchToPage(i);
 
-      // Save current position
-      const savedY = doc.y;
-
-      // Add page number - use explicit width to prevent page creation
+      // Page number at bottom center
       doc.fontSize(9)
-         .fillColor('#999999')
-         .text(
-           `Página ${pageNumber + 1} de ${totalPages}`,
-           50,
-           doc.page.height - 45,
-           { align: 'center', width: doc.page.width - 100, lineBreak: false }
-         );
+         .fillColor('#999999');
 
-      // Add footer text (agency name or generic)
-      doc.fontSize(8)
-         .fillColor('#bbbbbb')
-         .text(
-           footerText,
-           50,
-           doc.page.height - 30,
-           { align: 'center', width: doc.page.width - 100, lineBreak: false }
-         );
+      // Calculate center position manually to avoid text() creating pages
+      const pageText = `Página ${i + 1} de ${totalPages}`;
+      const textWidth = doc.widthOfString(pageText);
+      const xPos = (doc.page.width - textWidth) / 2;
 
-      // Restore position
-      doc.y = savedY;
+      doc.text(pageText, xPos, doc.page.height - 40, {
+        lineBreak: false,
+        continued: false
+      });
+
+      // Footer text (if agency name provided)
+      if (footerText) {
+        doc.fontSize(8)
+           .fillColor('#bbbbbb');
+        const footerWidth = doc.widthOfString(footerText);
+        const footerX = (doc.page.width - footerWidth) / 2;
+        doc.text(footerText, footerX, doc.page.height - 28, {
+          lineBreak: false,
+          continued: false
+        });
+      }
     }
   } catch (error) {
     console.error('Error adding footer to PDF:', error);
-    // Continue without footer if there's an error
   }
 }
 
