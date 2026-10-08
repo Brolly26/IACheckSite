@@ -1,0 +1,20 @@
+node_modules/
+dist/
+build/
+.next/
+out/
+
+# Secrets
+.env
+.env.local
+.env.*.local
+
+# Build artefacts and logs
+*.tsbuildinfo
+npm-debug.log*
+coverage/
+
+# Tooling leftovers
+.expo/
+.DS_Store
+Thumbs.db

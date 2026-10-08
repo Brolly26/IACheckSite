@@ -1,0 +1,38 @@
+name: llm-evals
+
+# The model-backed half of the suite. Scheduled rather than per-push because
+# it costs money per run and is sampled at temperature 0.7, so an occasional
+# miss is wording, not a regression. A failure here opens an investigation;
+# it does not block anyone's branch.
+#
+# Needs the OPENAI_API_KEY repository secret. Without it the job is skipped,
+# so forks and contributors are never blocked by a missing credential.
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'   # Mondays, 06:00 UTC
+  workflow_dispatch:
+
+jobs:
+  llm-eval:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: projeto
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: projeto/backend/package-lock.json
+
+      - name: Install backend dependencies
+        run: cd backend && npm ci
+
+      - name: Eval suite (model path)
+        if: ${{ secrets.OPENAI_API_KEY != '' }}
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: npm run eval:llm
