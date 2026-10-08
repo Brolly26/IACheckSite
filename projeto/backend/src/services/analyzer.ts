@@ -253,7 +253,7 @@ export async function analyzeSite(url: string): Promise<AnalysisResult> {
     
     // Generate AI analysis
     console.log(`[${Date.now() - startTime}ms] Generating AI analysis...`);
-    const aiAnalysis = await generateAIAnalysis(siteData);
+    const aiAnalysis = await generateAIAnalysis(siteData, url);
 
     console.log(`[${Date.now() - startTime}ms] ✅ Analysis complete!`);
 
