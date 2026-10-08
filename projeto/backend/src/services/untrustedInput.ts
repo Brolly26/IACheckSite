@@ -27,11 +27,14 @@
 const MAX_FIELD_LENGTH = 200;
 
 /** Characters that let a value pretend to be prompt structure rather than content. */
-const STRUCTURE_CHARS = /[`<>{}\[\]\\]/g;
+const STRUCTURE_CHARS = /[`<>{}\[\]\\#*|]/g;
 
 /** C0/C1 control characters except tab, which we turn into a space below. */
 // eslint-disable-next-line no-control-regex
-const CONTROL_CHARS = /[\u0000-\u0008\u000B-\u001F\u007F-\u009F]/g;
+// U+2028 and U+2029 are real line breaks to a renderer and to most models, and
+// neither /[\r\n\t]/ nor \s{2,} removes a single one — so a value could still
+// open a new line inside its own slot. U+0085 is the same story.
+const CONTROL_CHARS = /[\u0000-\u0008\u000B-\u001F\u007F-\u009F\u0085\u2028\u2029]/g;
 
 /**
  * Normalise a single untrusted string for inclusion in a prompt.
@@ -72,10 +75,20 @@ export function asUntrustedData(value: string | undefined | null, emptyLabel = '
 /** Same treatment for a list of untrusted strings (e.g. detected libraries). */
 export function asUntrustedList(values: string[] | undefined | null, emptyLabel = 'Nenhum'): string {
   if (!values || values.length === 0) return `«${emptyLabel}»`;
-  const items = values
-    .slice(0, 20)
-    .map((v) => sanitizeUntrusted(v, ''))
-    .filter((v) => v.length > 0);
+  // A 200-char cap per item still admits ~4,000 characters across 20 items,
+  // against a trusted prompt of roughly 1,200 — untrusted text would dominate
+  // the context, which is the flooding this module claims to prevent. The
+  // budget has to be on the list, not only on each item.
+  const TOTAL_BUDGET = 600;
+  const items: string[] = [];
+  let used = 0;
+  for (const v of values.slice(0, 20)) {
+    const clean = sanitizeUntrusted(v, '');
+    if (!clean) continue;
+    if (used + clean.length > TOTAL_BUDGET) { items.push('…'); break; }
+    items.push(clean);
+    used += clean.length + 2;
+  }
   if (items.length === 0) return `«${emptyLabel}»`;
   return `«${items.join(', ')}»`;
 }

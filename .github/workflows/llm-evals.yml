@@ -19,6 +19,14 @@ jobs:
     defaults:
       run:
         working-directory: projeto
+    # The `secrets` context is not available to a step-level `if` (the allowed
+    # contexts are github, needs, strategy, matrix, job, runner, env, vars,
+    # steps and inputs), so `if: ${{ secrets.X != '' }}` makes GitHub reject
+    # the whole file with "Unrecognized named-value: 'secrets'" — the workflow
+    # never runs at all, which is the opposite of skipping a step. Lift it into
+    # job-level env and test that instead.
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
     steps:
       - uses: actions/checkout@v4
 
@@ -31,8 +39,13 @@ jobs:
       - name: Install backend dependencies
         run: cd backend && npm ci
 
+      # Without the secret the job would otherwise report success having run
+      # nothing, which reads as a passing scheduled eval. Say so out loud.
+      - name: Report a missing key
+        if: env.OPENAI_API_KEY == ''
+        run: |
+          echo "::warning::OPENAI_API_KEY is not set; the model path was not exercised."
+
       - name: Eval suite (model path)
-        if: ${{ secrets.OPENAI_API_KEY != '' }}
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        if: env.OPENAI_API_KEY != ''
         run: npm run eval:llm

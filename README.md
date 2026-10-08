@@ -91,7 +91,7 @@ npm run test:sanitizer
 npm run check         # all three
 ```
 
-12 fixtures in `evals/fixtures.ts`. Each is frozen `SiteData` plus ground
+13 fixtures in `evals/fixtures.ts`. Each is frozen `SiteData` plus ground
 truth: which problems a correct report **must** raise, which it **must not**,
 and for the hostile ones, strings that must never appear.
 
@@ -126,8 +126,8 @@ mutation-tested:
 
 | Mutation | Result |
 |---|---|
-| Analyser stops reporting missing HTTPS | 100% → 67%, 4 cases red, exit 1 |
-| `STRUCTURE_CHARS` neutralised in the sanitiser | 18/18 → 13/18, exit 1 |
+| Analyser stops reporting missing HTTPS | 100% → **62%**, 5 cases red, exit 1 |
+| `STRUCTURE_CHARS` neutralised in the sanitiser | 21/21 → **16/21**, exit 1 |
 
 ### Thresholds
 
@@ -224,9 +224,9 @@ projeto/
 │   │   └── reports/             one scorer per category
 │   └── utils/types.ts           SiteData, AnalysisResult
 ├── evals/
-│   ├── fixtures.ts              12 fixtures with ground truth
+│   ├── fixtures.ts              13 fixtures with ground truth
 │   ├── rubric.ts                section-aware scoring
-│   ├── sanitizer.test.ts        18 structural assertions
+│   ├── sanitizer.test.ts        21 structural assertions
 │   ├── run.ts                   runner and gates
 │   └── thresholds.json
 ├── frontend/                    Next.js

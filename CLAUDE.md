@@ -56,7 +56,7 @@ cd projeto
 npm run check            # typecheck + test:sanitizer + eval
 npm run eval             # evals only, rule-based path, offline
 npm run eval:llm         # also calls the model; needs OPENAI_API_KEY, exits 2 without it
-npm run test:sanitizer   # 18 structural assertions on untrusted input
+npm run test:sanitizer   # 21 structural assertions on untrusted input
 npm run typecheck
 ```
 
@@ -103,6 +103,6 @@ prompt.
 
 A green suite means nothing until you have seen it go red. Both halves here
 have been mutation-tested, and the results are in `README.md`: breaking HTTPS
-detection drops the evals to 67%, neutralising `STRUCTURE_CHARS` takes the
-sanitiser to 13/18. If you add a check, break the thing it guards and confirm
+detection drops the evals to 62%, neutralising `STRUCTURE_CHARS` takes the
+sanitiser to 16/21. If you add a check, break the thing it guards and confirm
 it fails before you claim it works.

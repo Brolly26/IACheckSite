@@ -119,12 +119,19 @@ export function generateFallbackAnalysis(siteData: SiteData): string {
   }
 
   // Analisar Robots e Sitemap
+  // Reporting only "both present" and "both absent" meant the two mixed cases
+  // produced no output at all: a site with robots.txt but no sitemap was never
+  // told the sitemap was missing. Every fixture set the two flags together, so
+  // the suite could not see it.
   if (siteData.hasRobotsTxt && siteData.hasSitemapXml) {
     positivos.push('Arquivos para o Google encontrar seu site configurados');
-  } else if (!siteData.hasRobotsTxt && !siteData.hasSitemapXml) {
-    importantes.push(`**Google tem dificuldade para encontrar suas páginas**
-   Por que importa: Sem os arquivos certos, o Google pode não encontrar todas as páginas do seu site.
-   Como resolver: Crie um "mapa do site" (sitemap). A maioria dos criadores de site faz isso automaticamente.`);
+  } else {
+    const faltando: string[] = [];
+    if (!siteData.hasRobotsTxt) faltando.push('robots.txt');
+    if (!siteData.hasSitemapXml) faltando.push('mapa do site (sitemap)');
+    importantes.push(`**Faltam arquivos que ajudam o Google a encontrar seu site: ${faltando.join(' e ')}**
+   Por que importa: sem eles o Google demora mais para achar suas páginas, ou pode nem achar algumas.
+   Como resolver: peça ao seu desenvolvedor para gerar ${faltando.join(' e ')}.`);
   }
 
   // Analisar Tamanho
