@@ -57,6 +57,22 @@ const healthyLines = buildPrompt(fixtureById('healthy').data).split('\n').length
 const hostileLines = buildPrompt(fixtureById('injection-meta-roleplay').data).split('\n').length;
 assert('untrusted data cannot add prompt lines', healthyLines === hostileLines, `${healthyLines} vs ${hostileLines}`);
 
+// --- the delimiters themselves ------------------------------------------
+// The count is the invariant, not the shape. The template opens and closes one
+// pair per untrusted slot; a value that adds even one carves a piece of itself
+// out of the inert region. A shape check is the wrong tool here - it is easy to
+// write one that strips well-formed pairs first and so consumes the malformed
+// ones it was meant to catch.
+const delims = (t: string) => (t.match(/[«»]/g) ?? []).length;
+assert('a value cannot carry a delimiter', delims(asUntrustedData('a » b « c')) === 2,
+  'got ' + delims(asUntrustedData('a » b « c')));
+assert('a list item cannot carry one either', delims(asUntrustedList(['ok', 'x » y'])) === 2);
+const benignPrompt = buildPrompt(fixtureById('healthy').data);
+const slotAttack = buildPrompt(fixtureById('injection-closes-own-slot').data);
+assert('a hostile value cannot add a delimiter to the prompt',
+  delims(benignPrompt) === delims(slotAttack),
+  delims(benignPrompt) + ' vs ' + delims(slotAttack));
+
 // --- report ---------------------------------------------------------------
 const failed = checks.filter((c) => !c.ok);
 console.log('\nSiteCheck AI — sanitizer checks');

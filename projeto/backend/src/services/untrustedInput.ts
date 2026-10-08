@@ -45,6 +45,14 @@ export function sanitizeUntrusted(value: string | undefined | null, emptyLabel =
     .replace(CONTROL_CHARS, '')
     .replace(/[\r\n\t]+/g, ' ')
     .replace(STRUCTURE_CHARS, '')
+    // The guillemets are ours. They mark where third-party text begins and
+    // ends, and the system prompt declares whatever sits between them inert.
+    // A value carrying its own closes the slot early and puts the rest of
+    // itself outside that region, which is the entire attack this layer
+    // exists to stop. Leaving them through made every other measure here
+    // decorative, and the negative evals passed anyway because none of them
+    // used a guillemet.
+    .replace(/[«»]/g, '"')
     .replace(/\s{2,}/g, ' ')
     .trim();
 
