@@ -12,7 +12,8 @@
     "eval": "cd backend && npx ts-node -P ../evals/tsconfig.json ../evals/run.ts",
     "eval:llm": "cd backend && npx ts-node -P ../evals/tsconfig.json ../evals/run.ts --llm",
     "test:sanitizer": "cd backend && npx ts-node -P ../evals/tsconfig.json ../evals/sanitizer.test.ts",
-    "check": "npm run typecheck && npm run test:sanitizer && npm run eval"
+    "check": "npm run typecheck && npm run test:sanitizer && npm run test:failures && npm run eval",
+    "test:failures": "cd backend && npx ts-node -P ../evals/tsconfig.json ../evals/failures.test.ts"
   },
   "keywords": [
     "seo",

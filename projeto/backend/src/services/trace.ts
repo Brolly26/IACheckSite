@@ -64,14 +64,32 @@ export function estimateCostUsd(model: string, promptTokens: number, completionT
 export function classifyFailure(error: any): FailureClass {
   const status = error?.status ?? error?.response?.status;
   const message = String(error?.message ?? '');
+  // The SDK reports a connection failure as APIConnectionError whose message
+  // is the useless constant 'Connection error.', with the real cause nested in
+  // `cause.code`; and it carries its own `code` ('insufficient_quota',
+  // 'rate_limit_exceeded', 'invalid_api_key') that the message does not
+  // repeat. Reading only status and message sent every DNS blip and reset
+  // socket to `unknown`, which defeats the point of having a closed set.
+  const code = String(error?.code ?? '');
+  const causeCode = String(error?.cause?.code ?? '');
 
-  if (status === 401 || /incorrect api key|invalid_api_key/i.test(message)) return 'auth';
+  if (code === 'invalid_api_key' || status === 401 || status === 403) return 'auth';
+  if (/incorrect api key|invalid_api_key/i.test(message)) return 'auth';
+
+  if (code === 'insufficient_quota' || /insufficient_quota/i.test(message)) return 'quota';
   if (status === 429 && /quota|billing/i.test(message)) return 'quota';
-  if (/insufficient_quota/i.test(message)) return 'quota';
-  if (status === 429) return 'rate_limit';
-  if (/timed out|timeout|ETIMEDOUT|ECONNRESET/i.test(message)) return 'timeout';
-  if (typeof status === 'number' && status >= 500) return 'upstream';
+
+  if (code === 'rate_limit_exceeded' || status === 429) return 'rate_limit';
+
+  if (/^(ETIMEDOUT|ECONNRESET|ECONNABORTED|EPIPE)$/.test(causeCode)) return 'timeout';
+  if (/timed out|timeout|ETIMEDOUT|ECONNRESET|aborted/i.test(message)) return 'timeout';
+
+  // A name that cannot be resolved or refused the connection is upstream being
+  // unreachable, not a timeout: different alert, different response.
+  if (/^(ENOTFOUND|EAI_AGAIN|ECONNREFUSED|EHOSTUNREACH|ENETUNREACH)$/.test(causeCode)) return 'upstream';
   if (typeof status === 'number') return 'upstream';
+  if (error?.name === 'APIConnectionError') return 'upstream';
+
   return 'unknown';
 }
 

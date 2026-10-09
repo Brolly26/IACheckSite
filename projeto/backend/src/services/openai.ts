@@ -204,7 +204,12 @@ export function generateFallbackAnalysis(siteData: SiteData): string {
 }
 
 export interface AnalysisOptions {
-  /** Host of the analysed site, for the trace. Never the full URL. */
+  /**
+   * The FULL url of the analysed site. It is reduced to a host by `safeHost`
+   * before anything is recorded, so query strings never reach a trace — but
+   * the reduction needs a parseable absolute URL, and a bare host silently
+   * traces as `invalid-url`.
+   */
   targetUrl?: string;
   /** Overridable so evals can exercise the timeout path quickly. */
   timeoutMs?: number;
@@ -354,21 +359,33 @@ export async function analyzeWithTrace(
 
   const timeoutMs = options.timeoutMs ?? 30000;
   let timer: NodeJS.Timeout | undefined;
+  // Racing a timeout only decides what WE do; it does not stop the request.
+  // Without this the abandoned call ran on under the SDK's own defaults
+  // (600s, 2 retries), holding a socket and billing for a completion nobody
+  // reads — and under load each timed-out analysis stacked another live
+  // upstream request. An AbortSignal is what actually cancels it.
+  const controller = new AbortController();
 
   try {
     const timeoutPromise = new Promise<never>((_, reject) => {
-      timer = setTimeout(() => reject(new Error('OpenAI API request timed out')), timeoutMs);
+      timer = setTimeout(() => {
+        controller.abort();
+        reject(new Error('OpenAI API request timed out'));
+      }, timeoutMs);
     });
 
-    const apiPromise = openai.chat.completions.create({
-      model: MODEL,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: buildPrompt(siteData) },
-      ],
-      max_tokens: 1500,
-      temperature: 0.7,
-    });
+    const apiPromise = openai.chat.completions.create(
+      {
+        model: MODEL,
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: buildPrompt(siteData) },
+        ],
+        max_tokens: 1500,
+        temperature: 0.7,
+      },
+      { signal: controller.signal }
+    );
 
     const response = await Promise.race([apiPromise, timeoutPromise]);
     const text = response.choices[0]?.message?.content?.trim();
@@ -383,6 +400,13 @@ export async function analyzeWithTrace(
         failureMessage: 'Model returned no usable content',
         promptTokens,
         completionTokens,
+        // A 200 carrying no usable content is billed in full. Leaving the cost
+        // null here kept the one failure mode that costs money out of cost
+        // accounting entirely.
+        estimatedCostUsd:
+          promptTokens !== null && completionTokens !== null
+            ? estimateCostUsd(MODEL, promptTokens, completionTokens)
+            : null,
       });
     }
 

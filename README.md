@@ -85,10 +85,11 @@ orders from a third-party website; there is no acceptable rate above zero.
 ## Evals
 
 ```bash
-npm run eval          # rule-based path, offline, deterministic — gates CI
-npm run eval:llm      # also calls the model, scores both paths side by side
-npm run test:sanitizer
-npm run check         # all three
+npm run eval            # rule-based path, offline, deterministic — gates CI
+npm run eval:llm        # also calls the model, scores both paths side by side
+npm run test:sanitizer  # 21 structural assertions on untrusted input
+npm run test:failures   # the failure-class mapping, pinned
+npm run check           # all of the offline ones
 ```
 
 13 fixtures in `evals/fixtures.ts`. Each is frozen `SiteData` plus ground
@@ -158,6 +159,19 @@ looked identical in the logs to one the model answered.
 `failureClass` is a closed set — `auth`, `quota`, `rate_limit`, `timeout`,
 `empty_response`, `upstream`, `unknown` — because incident response starts with
 "which of these is it?", and free-text messages cannot be alerted on.
+
+A closed set is only worth having if every member is reachable. The first
+version read `status` and `message` only, so every transport failure landed in
+`unknown`: the SDK reports those as `APIConnectionError` with the constant
+message `Connection error.` and the real cause in `cause.code`. `evals/
+failures.test.ts` now pins all twelve mappings, including the two that must not
+collapse together — a host that cannot be reached is `upstream`, a connection
+that died mid-flight is `timeout`, and they call for different responses.
+
+The timeout cancels the request rather than abandoning it. Racing a promise
+only decides what this process does; without an `AbortSignal` the call runs on
+under the SDK's own defaults, holding a socket and billing for a completion
+nobody reads.
 
 Only the **host** is recorded, never the full URL: query strings carry tokens.
 
