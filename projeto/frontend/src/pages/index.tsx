@@ -6,6 +6,9 @@ import DetailedReportCard from '@/components/DetailedReportCard'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 
+// Backend base URL. Defaults to the local dev server; set NEXT_PUBLIC_API_URL for a deployed backend.
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+
 // White-label settings interface
 interface WhiteLabelSettings {
   agencyName: string;
@@ -139,7 +142,7 @@ export default function Home() {
       };
 
       // Make a POST request to the backend to generate the PDF
-      const response = await axios.post('https://iachecksite.onrender.com/api/generate-pdf', requestBody, {
+      const response = await axios.post(`${API_URL}/api/generate-pdf`, requestBody, {
         responseType: 'blob' // Important for handling binary data
       });
 
@@ -183,7 +186,7 @@ export default function Home() {
       setError('')
       setReportData(null)
       
-      const response = await axios.post('https://iachecksite.onrender.com/api/analyze', { url })
+      const response = await axios.post(`${API_URL}/api/analyze`, { url })
       setReportData(response.data)
     } catch (err) {
       setError('Ocorreu um erro ao analisar o site. Por favor, tente novamente.')

@@ -221,6 +221,16 @@ npm start                               # frontend :3000, backend :3001
 Without `OPENAI_API_KEY` the whole product still works — every run takes the
 rule-based path. That is the fastest way to see the fallback design in action.
 
+There is no hosted demo; it runs locally. The frontend calls
+`http://localhost:3001` unless `NEXT_PUBLIC_API_URL` points it elsewhere.
+
+Outside a serverless host, Puppeteer needs a local Chrome. If the backend logs
+`Failed to launch the browser process`, point it at one:
+
+```bash
+PUPPETEER_EXECUTABLE_PATH="/path/to/chrome" npm start
+```
+
 ---
 
 ## Layout
